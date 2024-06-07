@@ -1,0 +1,744 @@
+---
+title: "Overall correlations summarized"
+author: "Gavin Douglas"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    code_folding: hide
+    theme: cerulean
+    toc: true
+    toc_float: true
+---
+
+```{r setup}
+suppressPackageStartupMessages(library(circlize))
+suppressPackageStartupMessages(library(cowplot))
+suppressPackageStartupMessages(library(ggbeeswarm))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(reshape2))
+suppressPackageStartupMessages(library(grid))
+```
+
+```{r definitions}
+approaches <- c("simple", "hyperG", "propr")
+
+env_vars <- c("depth", "latitude", "longitude", "temperature", "oxygen", "salinity")
+
+id_map = list()
+
+for (env_var in env_vars) {
+  id_map[[env_var]] <- paste(tools::toTitleCase(env_var), "(diff.)")
+}
+
+id_map[["tip_dist"]] <- "Tip dist."
+
+id_map[["both_gene_count"]] <- "HGT (gene count)"
+id_map[["ranger_hgt_tallies"]] <- "HGT (gene count)"
+
+id_map[["cooccur_simple_cooccur"]] <- "Co-occur (Simple)"
+id_map[["cooccur_ratio"]] <- "Co-occur (HyperG)"
+id_map[["cooccur_asso"]] <- "Co-occur (propr)"
+
+clean_ids <- function(in_vec) { 
+  sapply(in_vec, function(x) { id_map[[x]] })
+}
+
+comparison_type_cols <- c("#33a02c", "#1f78b4", "#e31a1c")
+```
+
+# Initial analyses
+
+```{r read_orig_pairwise_and_partial_func}
+summary_stats <- function(x) {
+  n <- length(x)
+  mean_val <- mean(x, na.rm = TRUE)
+  median_val <- median(x, na.rm = TRUE)
+  sd_val <- sd(x, na.rm = TRUE)
+  se_val <- sd_val / sqrt(n)
+  wilcox_out <- wilcox.test(x)
+  out <- c(n, mean_val, median_val, sd_val, se_val, wilcox_out$statistic, wilcox_out$p.value)
+  names(out) <- c("n", "mean", "median", "sd", "se", "Wilcox_V", "Wilcox_P")
+  return(out)
+}
+read_corr_info <- function(pairwise_file, partial_file) {
+  pairwise_in <- read.table(pairwise_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  pairwise_in$sig <- "Non-sig."
+  pairwise_in$sig[which(pairwise_in$p.unc < 0.05)] <- "P < 0.05"
+
+  partial_in <- read.table(partial_file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  
+  return(list(pairwise_tab=pairwise_in,
+              partial_tab=partial_in))
+}
+```
+
+## Pairwise spearman {.tabset}
+
+### Tara ocean samples {.tabset}
+
+```{r tara_pairwise_corr}
+tara_simple_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/corr_out/metaG_simple.pairwise.tsv",
+                                 partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/corr_out/metaG_simple.partial.tsv")
+
+tara_hyperg_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/corr_out/metaG_hyperG.pairwise.tsv",
+                                 partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/corr_out/metaG_hyperG.partial.tsv")
+
+tara_propr_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/corr_out/metaG_propr.pairwise.tsv",
+                                partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/corr_out/metaG_propr.partial.tsv")
+
+tara_simple_in$partial_tab$Comparison <- "Co-occur (Simple)"
+tara_hyperg_in$partial_tab$Comparison <- "Co-occur (HyperG)"
+tara_propr_in$partial_tab$Comparison <- "Co-occur (propr)"
+
+# Make sure that both_gene_count vs. tip_dist comparisons are identical across all three inputs.
+tara_simple_in_hgt_vs_dist <- tara_simple_in$pairwise_tab[which(tara_simple_in$pairwise_tab$X == "both_gene_count" & tara_simple_in$pairwise_tab$Y == "tip_dist"), ]
+tara_hyperg_in_hgt_vs_dist <- tara_hyperg_in$pairwise_tab[which(tara_hyperg_in$pairwise_tab$X == "both_gene_count" & tara_hyperg_in$pairwise_tab$Y == "tip_dist"), ]
+tara_propr_in_hgt_vs_dist <- tara_propr_in$pairwise_tab[which(tara_propr_in$pairwise_tab$X == "both_gene_count" & tara_propr_in$pairwise_tab$Y == "tip_dist"), ]
+# It turns out they are slightly different -- so plot them to confirm the distributions are near-identical, and just keep one for simplicity.
+
+tara_pairwise_combined <- rbind(tara_simple_in$pairwise_tab, tara_hyperg_in$pairwise_tab[which(tara_hyperg_in$pairwise_tab$X != "both_gene_count" | tara_hyperg_in$pairwise_tab$Y != "tip_dist"), ])
+tara_pairwise_combined <- rbind(tara_pairwise_combined, tara_propr_in$pairwise_tab[which(tara_propr_in$pairwise_tab$X != "both_gene_count" | tara_propr_in$pairwise_tab$Y != "tip_dist"), ])
+tara_pairwise_combined$X <- clean_ids(tara_pairwise_combined$X)
+tara_pairwise_combined$Y <- clean_ids(tara_pairwise_combined$Y)
+tara_pairwise_combined$Comparison_clean <- paste(tara_pairwise_combined$X, tara_pairwise_combined$Y, sep = "\nvs. ")
+
+tara_partial_combined <- rbind(tara_simple_in$partial_tab, tara_hyperg_in$partial_tab)
+tara_partial_combined <- rbind(tara_partial_combined, tara_propr_in$partial_tab)
+
+comparison_levels <- c("HGT (gene count)\nvs. Tip dist.",
+                       "Co-occur (Simple)\nvs. Tip dist.",
+                       "Co-occur (HyperG)\nvs. Tip dist.",
+                       "Co-occur (propr)\nvs. Tip dist.",
+                       "Co-occur (Simple)\nvs. HGT (gene count)",
+                       "Co-occur (HyperG)\nvs. HGT (gene count)",
+                       "Co-occur (propr)\nvs. HGT (gene count)")
+
+tara_pairwise_combined$Comparison_clean <- factor(tara_pairwise_combined$Comparison_clean,
+                                                  levels = comparison_levels)
+
+tara_pairwise_combined$Test_type <- "Co-occur vs. HGT"
+tara_pairwise_combined[grep("HGT.*Tip dist.", tara_pairwise_combined$Comparison_clean), "Test_type"] <- "HGT vs. Tip dist."
+tara_pairwise_combined[grep("Co-occur.*Tip dist.", tara_pairwise_combined$Comparison_clean), "Test_type"] <- "Co-occur vs. Tip dist."
+tara_pairwise_combined$Test_type <- factor(tara_pairwise_combined$Test_type, levels = c("HGT vs. Tip dist.", "Co-occur vs. Tip dist.", "Co-occur vs. HGT"))
+```
+
+```{r tara_pairwise_corr_ranger}
+tara_ranger_simple_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/ranger_hgt/corr_out/metaG_simple.pairwise.tsv",
+                                 partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/ranger_hgt/corr_out/metaG_simple.partial.tsv")
+
+tara_ranger_hyperg_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/ranger_hgt/corr_out/metaG_hyperG.pairwise.tsv",
+                                 partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/ranger_hgt/corr_out/metaG_hyperG.partial.tsv")
+
+tara_ranger_propr_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/ranger_hgt/corr_out/metaG_propr.pairwise.tsv",
+                                partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/ranger_hgt/corr_out/metaG_propr.partial.tsv")
+
+tara_ranger_simple_in$partial_tab$Comparison <- "Co-occur (Simple)"
+tara_ranger_hyperg_in$partial_tab$Comparison <- "Co-occur (HyperG)"
+tara_ranger_propr_in$partial_tab$Comparison <- "Co-occur (propr)"
+
+# Make sure that both_gene_count vs. tip_dist comparisons are identical across all three inputs.
+tara_ranger_simple_in_hgt_vs_dist <- tara_ranger_simple_in$pairwise_tab[which(tara_ranger_simple_in$pairwise_tab$X == "ranger_hgt_tallies" & tara_ranger_simple_in$pairwise_tab$Y == "tip_dist"), ]
+tara_ranger_hyperg_in_hgt_vs_dist <- tara_ranger_hyperg_in$pairwise_tab[which(tara_ranger_hyperg_in$pairwise_tab$X == "ranger_hgt_tallies" & tara_ranger_hyperg_in$pairwise_tab$Y == "tip_dist"), ]
+tara_ranger_propr_in_hgt_vs_dist <- tara_ranger_propr_in$pairwise_tab[which(tara_ranger_propr_in$pairwise_tab$X == "ranger_hgt_tallies" & tara_ranger_propr_in$pairwise_tab$Y == "tip_dist"), ]
+# It turns out they are slightly different -- so plot them to confirm the distributions are near-identical, and just keep one for simplicity.
+
+tara_ranger_pairwise_combined <- rbind(tara_ranger_simple_in$pairwise_tab, tara_ranger_hyperg_in$pairwise_tab[which(tara_ranger_hyperg_in$pairwise_tab$X != "ranger_hgt_tallies" | tara_ranger_hyperg_in$pairwise_tab$Y != "tip_dist"), ])
+tara_ranger_pairwise_combined <- rbind(tara_ranger_pairwise_combined, tara_ranger_propr_in$pairwise_tab[which(tara_ranger_propr_in$pairwise_tab$X != "ranger_hgt_tallies" | tara_ranger_propr_in$pairwise_tab$Y != "tip_dist"), ])
+tara_ranger_pairwise_combined$X <- clean_ids(tara_ranger_pairwise_combined$X)
+tara_ranger_pairwise_combined$Y <- clean_ids(tara_ranger_pairwise_combined$Y)
+tara_ranger_pairwise_combined$Comparison_clean <- paste(tara_ranger_pairwise_combined$X, tara_ranger_pairwise_combined$Y, sep = "\nvs. ")
+
+tara_ranger_partial_combined <- rbind(tara_ranger_simple_in$partial_tab, tara_ranger_hyperg_in$partial_tab)
+tara_ranger_partial_combined <- rbind(tara_ranger_partial_combined, tara_ranger_propr_in$partial_tab)
+
+comparison_levels <- c("HGT (gene count)\nvs. Tip dist.",
+                       "Co-occur (Simple)\nvs. Tip dist.",
+                       "Co-occur (HyperG)\nvs. Tip dist.",
+                       "Co-occur (propr)\nvs. Tip dist.",
+                       "Co-occur (Simple)\nvs. HGT (gene count)",
+                       "Co-occur (HyperG)\nvs. HGT (gene count)",
+                       "Co-occur (propr)\nvs. HGT (gene count)")
+
+tara_ranger_pairwise_combined$Comparison_clean <- factor(tara_ranger_pairwise_combined$Comparison_clean,
+                                                  levels = comparison_levels)
+
+tara_ranger_pairwise_combined$Test_type <- "Co-occur vs. HGT"
+tara_ranger_pairwise_combined[grep("HGT.*Tip dist.", tara_ranger_pairwise_combined$Comparison_clean), "Test_type"] <- "HGT vs. Tip dist."
+tara_ranger_pairwise_combined[grep("Co-occur.*Tip dist.", tara_ranger_pairwise_combined$Comparison_clean), "Test_type"] <- "Co-occur vs. Tip dist."
+tara_ranger_pairwise_combined$Test_type <- factor(tara_ranger_pairwise_combined$Test_type, levels = c("HGT vs. Tip dist.", "Co-occur vs. Tip dist.", "Co-occur vs. HGT"))
+```
+
+#### BLAST (genus and above)
+
+```{r tara_ocean_spearman_pairwise_blast, fig.height=7, fig.width=11}
+print(ggplot(data = tara_pairwise_combined, aes(x = Comparison_clean, y = r, fill = Test_type)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Spearman's correlation coefficient") +
+                              xlab("Pairwise comparison") +
+                              labs(fill="Comparison type") +
+                              ggtitle("Tara ocean samples (BLAST - genus and above)") +
+                              scale_fill_manual(values=comparison_type_cols)
+)
+```
+
+#### RANGER (strain and species)
+
+```{r tara_ocean_spearman_pairwise_ranger, fig.height=7, fig.width=11}
+print(ggplot(data = tara_ranger_pairwise_combined, aes(x = Comparison_clean, y = r, fill = Test_type)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Spearman's correlation coefficient") +
+                              xlab("Pairwise comparison") +
+                              labs(fill="Comparison type") +
+                              ggtitle("Tara ocean samples (RANGER - strains and species)") +
+                              scale_fill_manual(values=comparison_type_cols)
+)
+```
+
+#### HGT vs. Tip dist. (all subsets)
+
+Note that the correlations for tip dist. vs HGT are slightly different depending on the taxon subset (which depends on the co-occurrence approach). Fortunately the distributions are very similar, so this is not something to worry about:
+
+```{r tara_ocean_tip_vs_hgt_all}
+boxplot(tara_simple_in_hgt_vs_dist$r, tara_hyperg_in_hgt_vs_dist$r, tara_propr_in_hgt_vs_dist$r,
+        names=c("simple", "hyperG", "propr"),
+       main= "Spearman - tip dist. vs HGT (both gene count)")
+```
+
+### Additional samples {.tabset}
+
+```{r extraonly_pairwise_corr}
+extraonly_simple_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/corr_out/metaG_simple.pairwise.tsv",
+                                 partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/corr_out/metaG_simple.partial.tsv")
+
+extraonly_hyperg_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/corr_out/metaG_hyperG.pairwise.tsv",
+                                 partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/corr_out/metaG_hyperG.partial.tsv")
+
+extraonly_propr_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/corr_out/metaG_propr.pairwise.tsv",
+                                partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/corr_out/metaG_propr.partial.tsv")
+
+extraonly_simple_in$partial_tab$Comparison <- "Co-occur (Simple)"
+extraonly_hyperg_in$partial_tab$Comparison <- "Co-occur (HyperG)"
+extraonly_propr_in$partial_tab$Comparison <- "Co-occur (propr)"
+
+# Make sure that both_gene_count vs. tip_dist comparisons are identical across all three inputs.
+extraonly_simple_in_hgt_vs_dist <- extraonly_simple_in$pairwise_tab[which(extraonly_simple_in$pairwise_tab$X == "both_gene_count" & extraonly_simple_in$pairwise_tab$Y == "tip_dist"), ]
+extraonly_hyperg_in_hgt_vs_dist <- extraonly_hyperg_in$pairwise_tab[which(extraonly_hyperg_in$pairwise_tab$X == "both_gene_count" & extraonly_hyperg_in$pairwise_tab$Y == "tip_dist"), ]
+extraonly_propr_in_hgt_vs_dist <- extraonly_propr_in$pairwise_tab[which(extraonly_propr_in$pairwise_tab$X == "both_gene_count" & extraonly_propr_in$pairwise_tab$Y == "tip_dist"), ]
+# It turns out they are slightly different -- so plot them to confirm the distributions are near-identical, and just keep one for simplicity.
+
+extraonly_pairwise_combined <- rbind(extraonly_simple_in$pairwise_tab, extraonly_hyperg_in$pairwise_tab[which(extraonly_hyperg_in$pairwise_tab$X != "both_gene_count" | extraonly_hyperg_in$pairwise_tab$Y != "tip_dist"), ])
+extraonly_pairwise_combined <- rbind(extraonly_pairwise_combined, extraonly_propr_in$pairwise_tab[which(extraonly_propr_in$pairwise_tab$X != "both_gene_count" | extraonly_propr_in$pairwise_tab$Y != "tip_dist"), ])
+extraonly_pairwise_combined$X <- clean_ids(extraonly_pairwise_combined$X)
+extraonly_pairwise_combined$Y <- clean_ids(extraonly_pairwise_combined$Y)
+extraonly_pairwise_combined$Comparison_clean <- paste(extraonly_pairwise_combined$X, extraonly_pairwise_combined$Y, sep = "\nvs. ")
+
+extraonly_partial_combined <- rbind(extraonly_simple_in$partial_tab, extraonly_hyperg_in$partial_tab)
+extraonly_partial_combined <- rbind(extraonly_partial_combined, extraonly_propr_in$partial_tab)
+
+comparison_levels <- c("HGT (gene count)\nvs. Tip dist.",
+                       "Co-occur (Simple)\nvs. Tip dist.",
+                       "Co-occur (HyperG)\nvs. Tip dist.",
+                       "Co-occur (propr)\nvs. Tip dist.",
+                       "Co-occur (Simple)\nvs. HGT (gene count)",
+                       "Co-occur (HyperG)\nvs. HGT (gene count)",
+                       "Co-occur (propr)\nvs. HGT (gene count)")
+
+extraonly_pairwise_combined$Comparison_clean <- factor(extraonly_pairwise_combined$Comparison_clean,
+                                                  levels = comparison_levels)
+
+extraonly_pairwise_combined$Test_type <- "Co-occur vs. HGT"
+extraonly_pairwise_combined[grep("HGT.*Tip dist.", extraonly_pairwise_combined$Comparison_clean), "Test_type"] <- "HGT vs. Tip dist."
+extraonly_pairwise_combined[grep("Co-occur.*Tip dist.", extraonly_pairwise_combined$Comparison_clean), "Test_type"] <- "Co-occur vs. Tip dist."
+extraonly_pairwise_combined$Test_type <- factor(extraonly_pairwise_combined$Test_type, levels = c("HGT vs. Tip dist.", "Co-occur vs. Tip dist.", "Co-occur vs. HGT"))
+```
+
+```{r extraonly_pairwise_corr_ranger}
+extraonly_ranger_simple_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/ranger_hgt/corr_out/metaG_simple.pairwise.tsv",
+                                 partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/ranger_hgt/corr_out/metaG_simple.partial.tsv")
+
+extraonly_ranger_hyperg_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/ranger_hgt/corr_out/metaG_hyperG.pairwise.tsv",
+                                 partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/ranger_hgt/corr_out/metaG_hyperG.partial.tsv")
+
+extraonly_ranger_propr_in <- read_corr_info(pairwise_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/ranger_hgt/corr_out/metaG_propr.pairwise.tsv",
+                                partial_file = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_extraonly/ranger_hgt/corr_out/metaG_propr.partial.tsv")
+
+extraonly_ranger_simple_in$partial_tab$Comparison <- "Co-occur (Simple)"
+extraonly_ranger_hyperg_in$partial_tab$Comparison <- "Co-occur (HyperG)"
+extraonly_ranger_propr_in$partial_tab$Comparison <- "Co-occur (propr)"
+
+# Make sure that both_gene_count vs. tip_dist comparisons are identical across all three inputs.
+extraonly_ranger_simple_in_hgt_vs_dist <- extraonly_ranger_simple_in$pairwise_tab[which(extraonly_ranger_simple_in$pairwise_tab$X == "ranger_hgt_tallies" & extraonly_ranger_simple_in$pairwise_tab$Y == "tip_dist"), ]
+extraonly_ranger_hyperg_in_hgt_vs_dist <- extraonly_ranger_hyperg_in$pairwise_tab[which(extraonly_ranger_hyperg_in$pairwise_tab$X == "ranger_hgt_tallies" & extraonly_ranger_hyperg_in$pairwise_tab$Y == "tip_dist"), ]
+extraonly_ranger_propr_in_hgt_vs_dist <- extraonly_ranger_propr_in$pairwise_tab[which(extraonly_ranger_propr_in$pairwise_tab$X == "ranger_hgt_tallies" & extraonly_ranger_propr_in$pairwise_tab$Y == "tip_dist"), ]
+# It turns out they are slightly different -- so plot them to confirm the distributions are near-identical, and just keep one for simplicity.
+
+extraonly_ranger_pairwise_combined <- rbind(extraonly_ranger_simple_in$pairwise_tab, extraonly_ranger_hyperg_in$pairwise_tab[which(extraonly_ranger_hyperg_in$pairwise_tab$X != "ranger_hgt_tallies" | extraonly_ranger_hyperg_in$pairwise_tab$Y != "tip_dist"), ])
+extraonly_ranger_pairwise_combined <- rbind(extraonly_ranger_pairwise_combined, extraonly_ranger_propr_in$pairwise_tab[which(extraonly_ranger_propr_in$pairwise_tab$X != "ranger_hgt_tallies" | extraonly_ranger_propr_in$pairwise_tab$Y != "tip_dist"), ])
+extraonly_ranger_pairwise_combined$X <- clean_ids(extraonly_ranger_pairwise_combined$X)
+extraonly_ranger_pairwise_combined$Y <- clean_ids(extraonly_ranger_pairwise_combined$Y)
+extraonly_ranger_pairwise_combined$Comparison_clean <- paste(extraonly_ranger_pairwise_combined$X, extraonly_ranger_pairwise_combined$Y, sep = "\nvs. ")
+
+extraonly_ranger_partial_combined <- rbind(extraonly_ranger_simple_in$partial_tab, extraonly_ranger_hyperg_in$partial_tab)
+extraonly_ranger_partial_combined <- rbind(extraonly_ranger_partial_combined, extraonly_ranger_propr_in$partial_tab)
+
+comparison_levels <- c("HGT (gene count)\nvs. Tip dist.",
+                       "Co-occur (Simple)\nvs. Tip dist.",
+                       "Co-occur (HyperG)\nvs. Tip dist.",
+                       "Co-occur (propr)\nvs. Tip dist.",
+                       "Co-occur (Simple)\nvs. HGT (gene count)",
+                       "Co-occur (HyperG)\nvs. HGT (gene count)",
+                       "Co-occur (propr)\nvs. HGT (gene count)")
+
+extraonly_ranger_pairwise_combined$Comparison_clean <- factor(extraonly_ranger_pairwise_combined$Comparison_clean,
+                                                  levels = comparison_levels)
+
+extraonly_ranger_pairwise_combined$Test_type <- "Co-occur vs. HGT"
+extraonly_ranger_pairwise_combined[grep("HGT.*Tip dist.", extraonly_ranger_pairwise_combined$Comparison_clean), "Test_type"] <- "HGT vs. Tip dist."
+extraonly_ranger_pairwise_combined[grep("Co-occur.*Tip dist.", extraonly_ranger_pairwise_combined$Comparison_clean), "Test_type"] <- "Co-occur vs. Tip dist."
+extraonly_ranger_pairwise_combined$Test_type <- factor(extraonly_ranger_pairwise_combined$Test_type, levels = c("HGT vs. Tip dist.", "Co-occur vs. Tip dist.", "Co-occur vs. HGT"))
+```
+
+#### BLAST (genus and above)
+
+```{r extraonly_ocean_spearman_pairwise_blast, fig.height=7, fig.width=11}
+print(ggplot(data = extraonly_pairwise_combined, aes(x = Comparison_clean, y = r, fill = Test_type)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Spearman's correlation coefficient") +
+                              xlab("Pairwise comparison") +
+                              labs(fill="Comparison type") +
+                              ggtitle("Additional ocean samples (BLAST - genus and above)") +
+                              scale_fill_manual(values=comparison_type_cols)
+)
+```
+
+#### RANGER (strain and species)
+
+```{r extraonly_ocean_spearman_pairwise_ranger, fig.height=7, fig.width=11}
+print(ggplot(data = extraonly_ranger_pairwise_combined, aes(x = Comparison_clean, y = r, fill = Test_type)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Spearman's correlation coefficient") +
+                              xlab("Pairwise comparison") +
+                              labs(fill="Comparison type") +
+                              ggtitle("Additional ocean samples (RANGER - strains and species)") +
+                              scale_fill_manual(values=comparison_type_cols)
+)
+```
+
+#### HGT vs. Tip dist. (all subsets)
+
+Note that the correlations for tip dist. vs HGT are slightly different depending on the taxon subset (which depends on the co-occurrence approach). Fortunately the distributions are very similar, so this is not something to worry about:
+
+```{r extraonly_ocean_tip_vs_hgt_all}
+boxplot(extraonly_simple_in_hgt_vs_dist$r, extraonly_hyperg_in_hgt_vs_dist$r, extraonly_propr_in_hgt_vs_dist$r,
+        names=c("simple", "hyperG", "propr"),
+        main="Spearman - tip dist. vs HGT (both gene count)")
+```
+
+## Pairwise partial spearman {.tabset}
+
+### Tara ocean samples {.tabset}
+
+#### BLAST (genus and above)
+
+```{r tara_ocean_spearman_partial_blast, fig.height=7, fig.width=7}
+tara_partial_combined$Comparison[which(tara_partial_combined$Comparison == "Co-occur (Simple)")] <- "Simple"
+tara_partial_combined$Comparison[which(tara_partial_combined$Comparison == "Co-occur (HyperG)")] <- "HyperG"
+tara_partial_combined$Comparison[which(tara_partial_combined$Comparison == "Co-occur (propr)")] <- "propr"
+tara_partial_combined$Comparison <- factor(tara_partial_combined$Comparison, levels = c("Simple", "HyperG", "propr"))
+
+print(ggplot(data = tara_partial_combined, aes(x = Comparison, y = r,)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Partial Spearman's correlation coefficient") +
+                              xlab("Co-occurrence approach") +
+                              ggtitle("Tara ocean samples (BLAST - genus and above)\nSpearman vs. HGT (gene count), controlling for tip dist.")
+)
+```
+
+#### RANGER (species and strains)
+
+```{r tara_ranger_ocean_spearman_partial_blast, fig.height=7, fig.width=7}
+tara_ranger_partial_combined$Comparison[which(tara_ranger_partial_combined$Comparison == "Co-occur (Simple)")] <- "Simple"
+tara_ranger_partial_combined$Comparison[which(tara_ranger_partial_combined$Comparison == "Co-occur (HyperG)")] <- "HyperG"
+tara_ranger_partial_combined$Comparison[which(tara_ranger_partial_combined$Comparison == "Co-occur (propr)")] <- "propr"
+tara_ranger_partial_combined$Comparison <- factor(tara_ranger_partial_combined$Comparison, levels = c("Simple", "HyperG", "propr"))
+
+print(ggplot(data = tara_ranger_partial_combined, aes(x = Comparison, y = r,)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Partial Spearman's correlation coefficient") +
+                              xlab("Co-occurrence approach") +
+                              ggtitle("Tara ocean samples (RANGER - species and strains)\nSpearman vs. HGT (gene count), controlling for tip dist.")
+)
+```
+
+### Additional ocean samples {.tabset}
+
+#### BLAST (genus and above)
+
+```{r extraonly_ocean_spearman_partial_blast, fig.height=7, fig.width=7}
+extraonly_partial_combined$Comparison[which(extraonly_partial_combined$Comparison == "Co-occur (Simple)")] <- "Simple"
+extraonly_partial_combined$Comparison[which(extraonly_partial_combined$Comparison == "Co-occur (HyperG)")] <- "HyperG"
+extraonly_partial_combined$Comparison[which(extraonly_partial_combined$Comparison == "Co-occur (propr)")] <- "propr"
+extraonly_partial_combined$Comparison <- factor(extraonly_partial_combined$Comparison, levels = c("Simple", "HyperG", "propr"))
+
+print(ggplot(data = extraonly_partial_combined, aes(x = Comparison, y = r,)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Partial Spearman's correlation coefficient") +
+                              xlab("Co-occurrence approach") +
+                              ggtitle("Additional ocean samples (BLAST - genus and above)\nSpearman vs. HGT (gene count), controlling for tip dist.")
+)
+```
+
+#### RANGER (species and strains)
+
+```{r extraonly_ranger_ocean_spearman_partial_blast, fig.height=7, fig.width=7}
+extraonly_ranger_partial_combined$Comparison[which(extraonly_ranger_partial_combined$Comparison == "Co-occur (Simple)")] <- "Simple"
+extraonly_ranger_partial_combined$Comparison[which(extraonly_ranger_partial_combined$Comparison == "Co-occur (HyperG)")] <- "HyperG"
+extraonly_ranger_partial_combined$Comparison[which(extraonly_ranger_partial_combined$Comparison == "Co-occur (propr)")] <- "propr"
+extraonly_ranger_partial_combined$Comparison <- factor(extraonly_ranger_partial_combined$Comparison, levels = c("Simple", "HyperG", "propr"))
+
+print(ggplot(data = extraonly_ranger_partial_combined, aes(x = Comparison, y = r,)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Partial Spearman's correlation coefficient") +
+                              xlab("Co-occurrence approach") +
+                              ggtitle("Additional ocean samples (RANGER - species and strains)\nSpearman vs. HGT (gene count), controlling for tip dist.")
+)
+```
+
+
+# All samples and variables
+
+## Pairwise Spearman correlations {.tabset}
+
+```{r read_pairwise_files}
+mean_pairwise = list()
+mean_pairwise[["BLAST"]] <- list()
+mean_pairwise[["RANGER"]] <- list()
+
+prep_pairwise_tab <- function(infile) {
+  in_pairwise <- read.table(infile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  X_tallies <- table(in_pairwise$X)
+  Y_tallies <- table(in_pairwise$Y)
+  in_pairwise$X <- factor(in_pairwise$X, levels = names(X_tallies)[order(X_tallies, decreasing = FALSE)])
+  in_pairwise$Y <- factor(in_pairwise$Y, levels = names(Y_tallies)[order(Y_tallies, decreasing = FALSE)])
+  in_pairwise_mean <- aggregate(x = r ~ X + Y, FUN = mean, data = in_pairwise)
+  in_pairwise_mean_wide <- reshape2::dcast(data = in_pairwise_mean, formula = X ~ Y, value.var = 'r')
+  rownames(in_pairwise_mean_wide) <- in_pairwise_mean_wide[, 1]
+  
+  # Also get comparisons not significantly different from 0, so that these can be coloured as grey.
+  unique_combos <- in_pairwise[, c("X", "Y")]
+  unique_combos <- unique_combos[-which(duplicated(unique_combos)), ]
+  nonsig_comparisons <- list()
+  nonsig_count <- 1
+  for (i in 1:nrow(unique_combos)) {
+    x_subset <- unique_combos[i, "X"]
+    y_subset <- unique_combos[i, "Y"]
+    combo_subset <- in_pairwise[which(in_pairwise$X == x_subset & in_pairwise$Y == y_subset), ]
+    wilox_combo_out <- wilcox.test(combo_subset$r)
+    if (wilox_combo_out$p.value >= 0.05) {
+      print("nonsig")
+      nonsig_comparisons[[nonsig_count]] <- c(y_subset, x_subset)
+      nonsig_count <- nonsig_count + 1
+    }
+  }
+  
+  return(list(tab=in_pairwise_mean_wide[, -1],
+              nonsig_comparisons=nonsig_comparisons))
+}
+
+for (approach in approaches) {
+  infile_blast_pairwise <- paste("/mfs/gdouglas/projects/ocean_mags/coverm/network_working_allsamples/partial_corr_out/", approach, ".pairwise.tsv", sep = "")
+  mean_pairwise[["BLAST"]][[approach]] <- prep_pairwise_tab(infile_blast_pairwise)
+  
+  infile_ranger_pairwise <- paste("/mfs/gdouglas/projects/ocean_mags/coverm/network_working_allsamples/ranger_hgt/partial_corr_out/", approach, ".pairwise.tsv", sep = "")
+  mean_pairwise[["RANGER"]][[approach]] <- prep_pairwise_tab(infile_ranger_pairwise)
+}
+
+identity_sanity_checks <- c(identical(mean_pairwise[["BLAST"]]$hyperG$tab[-8, ],  mean_pairwise[["BLAST"]]$propr$tab[-8, ]),
+                            identical(mean_pairwise[["BLAST"]]$simple$tab[-8, ],  mean_pairwise[["BLAST"]]$propr$tab[-8, ]),
+                            identical(mean_pairwise[["RANGER"]]$hyperG$tab[-8, ],  mean_pairwise[["RANGER"]]$propr$tab[-8, ]),
+                            identical(mean_pairwise[["RANGER"]]$simple$tab[-8, ],  mean_pairwise[["RANGER"]]$propr$tab[-8, ]))
+
+if (length(which(! identity_sanity_checks)) > 0) { stop("Non-co-occurrence mismatches" )}
+
+# Then realized afterwards that I should just combine the co-occurrence types into a single heatmap.
+mean_pairwise_combined <- list()
+
+BLAST_hyperG_row <- mean_pairwise[["BLAST"]]$hyperG$tab["cooccur_ratio", , drop = FALSE]
+BLAST_propr_row <- mean_pairwise[["BLAST"]]$propr$tab["cooccur_asso", , drop = FALSE]
+
+RANGER_hyperG_row <- mean_pairwise[["RANGER"]]$hyperG$tab["cooccur_ratio", , drop = FALSE]
+RANGER_propr_row <- mean_pairwise[["RANGER"]]$propr$tab["cooccur_asso", , drop = FALSE]
+
+mean_pairwise_combined[["BLAST"]] <- rbind(mean_pairwise[["BLAST"]]$simple$tab, BLAST_hyperG_row)
+mean_pairwise_combined[["BLAST"]] <- rbind(mean_pairwise_combined[["BLAST"]], BLAST_propr_row)
+
+mean_pairwise_combined[["RANGER"]] <- rbind(mean_pairwise[["RANGER"]]$simple$tab, RANGER_hyperG_row)
+mean_pairwise_combined[["RANGER"]] <- rbind(mean_pairwise_combined[["RANGER"]], RANGER_propr_row)
+```
+
+```{r blast_pairwise_spearman, fig.height=7, fig.width=8, results='asis', echo=FALSE}
+for (hgt_type in names(mean_pairwise)) {
+  cat("\n\n")
+  
+  cat("### ", hgt_type, " results", "\n\n")
+  
+    in_mat <- as.matrix(mean_pairwise_combined[[hgt_type]])
+  
+  for (approach in approaches) {
+    if (length(mean_pairwise[[hgt_type]][[approach]]$nonsig_comparisons) > 0) {
+      stop("Note that there are non-sig comparisons, so the colouring should be changed.")
+    }
+  }
+
+    in_mat_char <- in_mat
+    for (i in 1:ncol(in_mat)) {
+     in_mat_char[, i] <- sprintf("%.2f", in_mat[, i])
+    }
+    in_mat_char[in_mat_char == "NA"] <- ""
+    col_fun = colorRamp2(c(-1, 0, 1), c("#6699CC", "white", "#CC3333"))
+
+    heatmap_out <- ComplexHeatmap::Heatmap(matrix = in_mat,
+                                           col = col_fun,
+                                           cluster_rows = FALSE,
+                                           cluster_columns = FALSE,
+                                           row_split = c(" ", " ", " ", " ", " ", "  ", "   ", "     ", "     ", "     "),
+                                           row_labels = clean_ids(rownames(in_mat)),
+                                           column_labels = clean_ids(colnames(in_mat)),
+                                           na_col = "grey50",
+                                           cell_fun = function(j, i, x, y, width, height, fill) {
+                                             grid.text(in_mat_char[i, j], x, y, gp = gpar(fontsize = 10))
+                                           },
+                                           name = 'Spearman correlation')
+    
+    print(heatmap_out)
+    
+    cat("\n\n")
+
+}
+
+```
+
+## Partial Spearman correlations {.tabset}
+
+```{r read_allsamples_tip_partial}
+allsamples_partial_folder <- "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_allsamples/partial_corr_out"
+
+allsamples_simple_partial_in <- read.table(paste(allsamples_partial_folder, "simple.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_simple_partial_tiponly_in <- read.table(paste(allsamples_partial_folder, "simple.tiponly.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_simple_partial_permuted_in <- read.table(paste(allsamples_partial_folder, "simple.permuted.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+allsamples_simple_spearman_in <- read.table(paste(allsamples_partial_folder, "simple.pairwise.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_simple_spearman_in <- allsamples_simple_spearman_in[grep("cooccur", allsamples_simple_spearman_in$X), ]
+allsamples_simple_spearman_in <- allsamples_simple_spearman_in[which(allsamples_simple_spearman_in$Y == "both_gene_count"), ]
+allsamples_simple_spearman_in$p.val <- allsamples_simple_spearman_in$p.unc
+allsamples_simple_spearman_in <- allsamples_simple_spearman_in[, colnames(allsamples_simple_partial_tiponly_in)]
+
+allsamples_simple_partial_in$type <- "All var. controlled"
+allsamples_simple_partial_tiponly_in$type <- "Tip dist. controlled"
+allsamples_simple_partial_permuted_in$type <- "All var. controlled (permuted)"
+allsamples_simple_spearman_in$type <- "No control"
+
+allsamples_simple_combined <- do.call(rbind, list(allsamples_simple_partial_in, allsamples_simple_partial_tiponly_in, 
+                                                  allsamples_simple_partial_permuted_in, allsamples_simple_spearman_in))
+allsamples_simple_combined$Approach <- "Simple"
+
+allsamples_hyperG_partial_in <- read.table(paste(allsamples_partial_folder, "hyperG.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_hyperG_partial_tiponly_in <- read.table(paste(allsamples_partial_folder, "hyperG.tiponly.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_hyperG_partial_permuted_in <- read.table(paste(allsamples_partial_folder, "hyperG.permuted.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+allsamples_hyperG_spearman_in <- read.table(paste(allsamples_partial_folder, "hyperG.pairwise.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_hyperG_spearman_in <- allsamples_hyperG_spearman_in[grep("cooccur", allsamples_hyperG_spearman_in$X), ]
+allsamples_hyperG_spearman_in <- allsamples_hyperG_spearman_in[which(allsamples_hyperG_spearman_in$Y == "both_gene_count"), ]
+allsamples_hyperG_spearman_in$p.val <- allsamples_hyperG_spearman_in$p.unc
+allsamples_hyperG_spearman_in <- allsamples_hyperG_spearman_in[, colnames(allsamples_hyperG_partial_tiponly_in)]
+
+allsamples_hyperG_partial_in$type <- "All var. controlled"
+allsamples_hyperG_partial_tiponly_in$type <- "Tip dist. controlled"
+allsamples_hyperG_partial_permuted_in$type <- "All var. controlled (permuted)"
+allsamples_hyperG_spearman_in$type <- "No control"
+
+allsamples_hyperG_combined <- do.call(rbind, list(allsamples_hyperG_partial_in, allsamples_hyperG_partial_tiponly_in, 
+                                                  allsamples_hyperG_partial_permuted_in, allsamples_hyperG_spearman_in))
+allsamples_hyperG_combined$Approach <- "HyperG"
+
+allsamples_propr_partial_in <- read.table(paste(allsamples_partial_folder, "propr.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_propr_partial_tiponly_in <- read.table(paste(allsamples_partial_folder, "propr.tiponly.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_propr_partial_permuted_in <- read.table(paste(allsamples_partial_folder, "propr.permuted.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+allsamples_propr_spearman_in <- read.table(paste(allsamples_partial_folder, "propr.pairwise.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_propr_spearman_in <- allsamples_propr_spearman_in[grep("cooccur", allsamples_propr_spearman_in$X), ]
+allsamples_propr_spearman_in <- allsamples_propr_spearman_in[which(allsamples_propr_spearman_in$Y == "both_gene_count"), ]
+allsamples_propr_spearman_in$p.val <- allsamples_propr_spearman_in$p.unc
+allsamples_propr_spearman_in <- allsamples_propr_spearman_in[, colnames(allsamples_propr_partial_tiponly_in)]
+
+allsamples_propr_partial_in$type <- "All var. controlled"
+allsamples_propr_partial_tiponly_in$type <- "Tip dist. controlled"
+allsamples_propr_partial_permuted_in$type <- "All var. controlled (permuted)"
+allsamples_propr_spearman_in$type <- "No control"
+
+allsamples_propr_combined <- do.call(rbind, list(allsamples_propr_partial_in, allsamples_propr_partial_tiponly_in, 
+                                                  allsamples_propr_partial_permuted_in, allsamples_propr_spearman_in))
+allsamples_propr_combined$Approach <- "propr"
+
+allsamples_partial_combined <- do.call(rbind, list(allsamples_simple_combined, allsamples_hyperG_combined, allsamples_propr_combined))
+allsamples_partial_combined$Approach <- factor(allsamples_partial_combined$Approach, levels = c("Simple", "HyperG", "propr"))
+allsamples_partial_combined$type <- factor(allsamples_partial_combined$type, levels = c("No control", "Tip dist. controlled", "All var. controlled", "All var. controlled (permuted)"))
+```
+
+```{r read_allsamples_ranger_tip_partial}
+allsamples_ranger_partial_folder <- "/mfs/gdouglas/projects/ocean_mags/coverm/network_working_allsamples/ranger_hgt/partial_corr_out"
+
+allsamples_ranger_simple_partial_in <- read.table(paste(allsamples_ranger_partial_folder, "simple.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_simple_partial_tiponly_in <- read.table(paste(allsamples_ranger_partial_folder, "simple.tiponly.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_simple_partial_permuted_in <- read.table(paste(allsamples_ranger_partial_folder, "simple.permuted.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+allsamples_ranger_simple_spearman_in <- read.table(paste(allsamples_ranger_partial_folder, "simple.pairwise.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_simple_spearman_in <- allsamples_ranger_simple_spearman_in[grep("cooccur", allsamples_ranger_simple_spearman_in$X), ]
+allsamples_ranger_simple_spearman_in <- allsamples_ranger_simple_spearman_in[which(allsamples_ranger_simple_spearman_in$Y == "ranger_hgt_tallies"), ]
+allsamples_ranger_simple_spearman_in$p.val <- allsamples_ranger_simple_spearman_in$p.unc
+allsamples_ranger_simple_spearman_in <- allsamples_ranger_simple_spearman_in[, colnames(allsamples_ranger_simple_partial_tiponly_in)]
+
+allsamples_ranger_simple_partial_in$type <- "All var. controlled"
+allsamples_ranger_simple_partial_tiponly_in$type <- "Tip dist. controlled"
+allsamples_ranger_simple_partial_permuted_in$type <- "All var. controlled (permuted)"
+allsamples_ranger_simple_spearman_in$type <- "No control"
+
+allsamples_ranger_simple_combined <- do.call(rbind, list(allsamples_ranger_simple_partial_in, allsamples_ranger_simple_partial_tiponly_in, 
+                                                  allsamples_ranger_simple_partial_permuted_in, allsamples_ranger_simple_spearman_in))
+allsamples_ranger_simple_combined$Approach <- "Simple"
+
+allsamples_ranger_hyperG_partial_in <- read.table(paste(allsamples_ranger_partial_folder, "hyperG.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_hyperG_partial_tiponly_in <- read.table(paste(allsamples_ranger_partial_folder, "hyperG.tiponly.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_hyperG_partial_permuted_in <- read.table(paste(allsamples_ranger_partial_folder, "hyperG.permuted.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+allsamples_ranger_hyperG_spearman_in <- read.table(paste(allsamples_ranger_partial_folder, "hyperG.pairwise.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_hyperG_spearman_in <- allsamples_ranger_hyperG_spearman_in[grep("cooccur", allsamples_ranger_hyperG_spearman_in$X), ]
+allsamples_ranger_hyperG_spearman_in <- allsamples_ranger_hyperG_spearman_in[which(allsamples_ranger_hyperG_spearman_in$Y == "ranger_hgt_tallies"), ]
+allsamples_ranger_hyperG_spearman_in$p.val <- allsamples_ranger_hyperG_spearman_in$p.unc
+allsamples_ranger_hyperG_spearman_in <- allsamples_ranger_hyperG_spearman_in[, colnames(allsamples_ranger_hyperG_partial_tiponly_in)]
+
+allsamples_ranger_hyperG_partial_in$type <- "All var. controlled"
+allsamples_ranger_hyperG_partial_tiponly_in$type <- "Tip dist. controlled"
+allsamples_ranger_hyperG_partial_permuted_in$type <- "All var. controlled (permuted)"
+allsamples_ranger_hyperG_spearman_in$type <- "No control"
+
+allsamples_ranger_hyperG_combined <- do.call(rbind, list(allsamples_ranger_hyperG_partial_in, allsamples_ranger_hyperG_partial_tiponly_in, 
+                                                  allsamples_ranger_hyperG_partial_permuted_in, allsamples_ranger_hyperG_spearman_in))
+allsamples_ranger_hyperG_combined$Approach <- "HyperG"
+
+allsamples_ranger_propr_partial_in <- read.table(paste(allsamples_ranger_partial_folder, "propr.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_propr_partial_tiponly_in <- read.table(paste(allsamples_ranger_partial_folder, "propr.tiponly.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_propr_partial_permuted_in <- read.table(paste(allsamples_ranger_partial_folder, "propr.permuted.partial.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+allsamples_ranger_propr_spearman_in <- read.table(paste(allsamples_ranger_partial_folder, "propr.pairwise.tsv", sep = "/"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+allsamples_ranger_propr_spearman_in <- allsamples_ranger_propr_spearman_in[grep("cooccur", allsamples_ranger_propr_spearman_in$X), ]
+allsamples_ranger_propr_spearman_in <- allsamples_ranger_propr_spearman_in[which(allsamples_ranger_propr_spearman_in$Y == "ranger_hgt_tallies"), ]
+allsamples_ranger_propr_spearman_in$p.val <- allsamples_ranger_propr_spearman_in$p.unc
+allsamples_ranger_propr_spearman_in <- allsamples_ranger_propr_spearman_in[, colnames(allsamples_ranger_propr_partial_tiponly_in)]
+
+allsamples_ranger_propr_partial_in$type <- "All var. controlled"
+allsamples_ranger_propr_partial_tiponly_in$type <- "Tip dist. controlled"
+allsamples_ranger_propr_partial_permuted_in$type <- "All var. controlled (permuted)"
+allsamples_ranger_propr_spearman_in$type <- "No control"
+
+allsamples_ranger_propr_combined <- do.call(rbind, list(allsamples_ranger_propr_partial_in, allsamples_ranger_propr_partial_tiponly_in, 
+                                                  allsamples_ranger_propr_partial_permuted_in, allsamples_ranger_propr_spearman_in))
+allsamples_ranger_propr_combined$Approach <- "propr"
+
+allsamples_ranger_partial_combined <- do.call(rbind, list(allsamples_ranger_simple_combined, allsamples_ranger_hyperG_combined, allsamples_ranger_propr_combined))
+allsamples_ranger_partial_combined$Approach <- factor(allsamples_ranger_partial_combined$Approach, levels = c("Simple", "HyperG", "propr"))
+allsamples_ranger_partial_combined$type <- factor(allsamples_ranger_partial_combined$type, levels = c("No control", "Tip dist. controlled", "All var. controlled", "All var. controlled (permuted)"))
+```
+
+### BLAST (genus and above)
+
+```{r allsamples_ocean_spearman_partial_blast, fig.height=4, fig.width=6}
+allsamples_partial_combined <- allsamples_partial_combined[which(! is.na(allsamples_partial_combined$r)), ]
+
+print(ggplot(data = allsamples_partial_combined, aes(x = Approach, y = r, fill = type)) +
+                              geom_quasirandom(dodge.width=.75, alpha = 0.5, col="grey80") +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Partial Spearman's correlation coefficient") +
+                              xlab("Co-occurrence approach") +
+                              ggtitle("All ocean samples (BLAST - genus and above)") +
+                              labs(fill="Spearman approach") +
+                              scale_fill_manual(values = c("#c7733b", "#8d75ca", "#78a450", "#c16786"))
+)
+```
+
+### RANGER (species and strains)
+
+```{r allsamples_ranger_ocean_spearman_partial_blast, fig.height=4, fig.width=6}
+allsamples_ranger_partial_combined <- allsamples_ranger_partial_combined[which(! is.na(allsamples_ranger_partial_combined$r)), ]
+
+print(ggplot(data = allsamples_ranger_partial_combined, aes(x = Approach, y = r, fill = type)) +
+                              geom_quasirandom(dodge.width=.75, alpha = 0.5, col="grey80") +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5)) +
+                              ylab("Partial Spearman's correlation coefficient") +
+                              xlab("Co-occurrence approach") +
+                              ggtitle("All ocean samples (RANGER - species and strains)") +
+                              labs(fill="Spearman approach") +
+                              scale_fill_manual(values = c("#c7733b", "#8d75ca", "#78a450", "#c16786"))
+)
+```
+
+
+# Session info {.tabset}
+
+## Hide
+
+## Show
+
+```{r show_info}
+sessionInfo()
+```

@@ -1,13 +1,15 @@
 ---
 title: "BLAST results summarized"
 author: "Gavin Douglas"
-date: '`r format(Sys.Date(), "%B %d, %Y")`'
+date: "`r format(Sys.Date(), "%B %d, %Y")`"
 output:
   html_document:
     code_folding: hide
     theme: cerulean
     toc: true
     toc_float: true
+  pdf_document:
+    toc: true
 ---
 
 ```{r setup}
@@ -32,16 +34,18 @@ Summary of BLAST results:
 # Putative HGT events by taxonomic level
 
 ```{r read_BLAST_nums}
-num_comparisons <- read.table("/mfs/gdouglas/projects/water_mags/water_mag_analysis/summary_files/num_comparisons_per_inter.level.tsv.gz",
+num_comparisons <- read.table("/mfs/gdouglas/projects/ocean_mags/summary_files/num_comparisons_per_inter.level.tsv.gz",
                           header = TRUE, sep = '\t', stringsAsFactors = FALSE, row.names = 1)
 
-tally_tab <- read.table("/mfs/gdouglas/projects/water_mags/water_mag_analysis/summary_files/BLAST_hit_tally_table.tsv.gz",
+tally_tab <- read.table("/mfs/gdouglas/projects/ocean_mags/summary_files/BLAST_hit_tally_table.tsv.gz",
                         header = TRUE, sep = '\t', stringsAsFactors = FALSE)
 colnames(tally_tab)[which(colnames(tally_tab) == "Level")] <- "Inter-level"
 
+#num_tax_levels <- 8
 # Ignore Species and Strain levels.
 tally_tab <- tally_tab[which(! tally_tab$`Inter-level` %in% c('Species', 'Strain')), ]
 num_comparisons <- num_comparisons[which(! rownames(num_comparisons) %in% c('Species', 'Strain')), , drop = FALSE]
+num_tax_levels <- 6
 ```
 
 # Count breakdowns
@@ -121,18 +125,17 @@ COG category enrichment was performed based on the functional annotation of each
 
 Point colour represents FDR value:
   
-* Dark red: < 0.05 
-* Pink: < 0.20 
-* White >= 0.20 
+* Black: < 0.05 
+* White >= 0.05
 
 Although correlated, the enrichments based on the two different identity cut-offs do substantially differ. Does this give us any insight into which functions are most commonly transferred vs those that are most adaptive? Or would that be inappropriate to consider here?
 
 ```{r read_in}
-COG_enrich <- read.table("/mfs/gdouglas/projects/water_mags/water_mag_analysis/summary_files/BLAST_COG_category_enrichment_no.unannot.tsv.gz",
+COG_enrich <- read.table("/mfs/gdouglas/projects/ocean_mags/summary_files/COG_category_enrichment_no.unannot.tsv",
                          header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
+#COG_enrich$taxon <- factor(COG_enrich$taxon, levels = c("Strain", "Species", "Genus", "Family", "Order", "Class", "Phylum", "Domain"))
 COG_enrich <- COG_enrich[which(! COG_enrich$taxon %in% c('Species', 'Strain')), ]
-
 COG_enrich$taxon <- factor(COG_enrich$taxon, levels = c("Genus", "Family", "Order", "Class", "Phylum", "Domain"))
 
 COG_enrich[which(COG_enrich$identity == "95"), "identity"] <- "id >= 95% and < 99%"
@@ -149,10 +152,10 @@ for (COG_category in unique(COG_enrich$category)) {
   cat('##', COG_enrich_subset$descrip[1], ' \n')
 
   COG_enrich_subset$sig_col <- "white"
-  COG_enrich_subset$sig_col[which(COG_enrich_subset$fdr < 0.20)] <- "pink"
-  COG_enrich_subset$sig_col[which(COG_enrich_subset$fdr < 0.05)] <- "dark red"
+  ######COG_enrich_subset$sig_col[which(COG_enrich_subset$fdr < 0.20)] <- "pink"
+  COG_enrich_subset$sig_col[which(COG_enrich_subset$fdr < 0.05)] <- "black"
   
-  print(ggplot(data = COG_enrich_subset, aes(x = log2(OR + 0.1), y = taxon)) +
+  print(ggplot(data = COG_enrich_subset, aes(x = log2(OR), y = taxon)) +
     geom_point(fill = COG_enrich_subset$sig_col, size = 2, shape = 21) +
     facet_wrap(. ~ identity) +
     ggtitle(COG_enrich_subset$descrip[1]) +
@@ -174,7 +177,15 @@ Viewing all the data as a heatmap is a lot easier to process
 unique_COG_categories <- sort(unique(COG_enrich$descrip))
 unique_taxa <- sort(unique(COG_enrich$taxon))
 
-COG_ORs_95 <- data.frame(matrix(NA, nrow = length(unique_COG_categories), ncol = 6))
+# Fix any ORs that are 0.
+zero_OR_rows <- which(COG_enrich$OR == 0)
+if (length(zero_OR_rows) > 0) {
+  for (row_i in zero_OR_rows) {
+     COG_enrich[row_i, "OR"] <- (((COG_enrich[row_i, "genes_num_category"] + 1) / COG_enrich[row_i, "genes_num_other"]) / ((COG_enrich[row_i, "background_num_category"] + 1) / COG_enrich[row_i, "background_num_other"]))
+  }
+}
+
+COG_ORs_95 <- data.frame(matrix(NA, nrow = length(unique_COG_categories), ncol = num_tax_levels))
 rownames(COG_ORs_95) <- unique_COG_categories
 colnames(COG_ORs_95) <- unique_taxa
 
@@ -213,7 +224,7 @@ draw(column_title = "",
              row_names_side = "left",
              row_labels = rownames(COG_ORs),
              column_labels = c(unique_taxa, unique_taxa),
-             column_split = c(rep("id >= 95% and < 99%", 6), rep("id >= 99%", 6)),
+             column_split = c(rep("id >= 95% and < 99%", num_tax_levels), rep("id >= 99%", num_tax_levels)),
              cluster_rows = TRUE,
              cluster_columns = FALSE,
              column_gap = unit(5, "mm"),
@@ -227,7 +238,7 @@ draw(column_title = "",
 # Enrichments by other genomic annotations
 
 ```{r other_annot, fig.height=8, fig.width=15}
-annot_enrich <- read.table("/mfs/gdouglas/projects/water_mags/water_mag_analysis/summary_files/BLAST_HGT_genomic_annot_enrichments.tsv.gz",
+annot_enrich <- read.table("/mfs/gdouglas/projects/ocean_mags/summary_files/BLAST_HGT_genomic_annot_enrichments.tsv.gz",
                          header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 annot_enrich$fdr <- p.adjust(annot_enrich$P, 'fdr')
@@ -239,6 +250,9 @@ annot_enrich$log2OR <- log2(annot_enrich$OR)
 annot_enrich_wide <- reshape2::dcast(data = annot_enrich, formula = annot ~ category, value.var = 'log2OR')
 
 rownames(annot_enrich_wide) <- annot_enrich_wide$annot
+
+# annot_enrich_wide <- annot_enrich_wide[, c('Strain_95', 'Species_95', 'Genus_95', 'Family_95', 'Order_95', 'Class_95', 'Phylum_95', 'Domain_95',
+#                                            'Strain_99', 'Species_99', 'Genus_99', 'Family_99', 'Order_99', 'Class_99', 'Phylum_99', 'Domain_99')]
 
 annot_enrich_wide <- annot_enrich_wide[, c('Genus_95', 'Family_95', 'Order_95', 'Class_95', 'Phylum_95', 'Domain_95',
                                            'Genus_99', 'Family_99', 'Order_99', 'Class_99', 'Phylum_99', 'Domain_99')]
@@ -255,7 +269,7 @@ draw(column_title = "",
              row_names_side = "left",
              row_labels = rownames(annot_enrich_wide),
              column_labels = c(unique_taxa, unique_taxa),
-             column_split = c(rep("id >= 95% and < 99%", 6), rep("id >= 99%", 6)),
+             column_split = c(rep("id >= 95% and < 99%", num_tax_levels), rep("id >= 99%", num_tax_levels)),
              cluster_rows = FALSE,
              cluster_columns = FALSE,
              column_gap = unit(5, "mm"),
@@ -275,11 +289,12 @@ Perhaps the biggest point of interest is that the average number of genes per re
 ## With outliers
 
 ```{r genes_per_region_w_outliers}
-hit_counts_per_region <- readRDS("/mfs/gdouglas/projects/water_mags/water_mag_analysis/summary_files/per_hit_gene_counts.rds")
+hit_counts_per_region <- readRDS("/mfs/gdouglas/projects/ocean_mags/summary_files/per_hit_gene_counts.rds")
 
 hit_counts_per_region <- hit_counts_per_region[which(! hit_counts_per_region$Level %in% c('Species', 'Strain')), ]
-
 hit_counts_per_region$Level <- factor(hit_counts_per_region$Level, levels = c("Domain", "Phylum", "Class", "Order", "Family", "Genus"))
+
+#hit_counts_per_region$Level <- factor(hit_counts_per_region$Level, levels = c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Strain"))
 
 ggplot(data = hit_counts_per_region, aes(x = Num_covered_genes, y = Level)) +
   geom_boxplot() +
@@ -302,7 +317,40 @@ ggplot(data = hit_counts_per_region, aes(x = Num_covered_genes, y = Level)) +
   scale_x_continuous(limits = c(0, 20))
 ```
 
+## Outliers removed -- reformatted
+```{r genes_per_region_no_outliers_reformat}
+ggplot(data = hit_counts_per_region, aes(x = Num_covered_genes, y = Level, fill = Identity)) +
+  geom_boxplot(outlier.shape = NA) +
+  theme_bw() +
+  xlab("Number of genes at least 90% covered by hit region\n(Average of genes in overlapping region of both genomes)") +
+  ylab("Inter-taxon level") +
+  scale_fill_manual(values=c("green", "cornflowerblue")) +
+  scale_x_continuous(limits = c(0, 20))
+```
 
+## Wilcoxon tests
+```{r genes_wilcox_compare}
+
+wilcox_summary <- data.frame(matrix(NA, nrow = num_tax_levels, ncol = 4))
+rownames(wilcox_summary) <- c("Genus", "Family", "Order", "Class", "Phylum", "Domain")
+#rownames(wilcox_summary) <- c("Strain", "Species", "Genus", "Family", "Order", "Class", "Phylum", "Domain")
+colnames(wilcox_summary) <- c("mean95", "mean99", "W", "P")
+
+for (tax_level in unique(hit_counts_per_region$Level)) {
+ subset99 <- hit_counts_per_region[which(hit_counts_per_region$Identity == "Identity >= 99%" & hit_counts_per_region$Level == tax_level), "Num_covered_genes"]
+ subset95 <- hit_counts_per_region[which(hit_counts_per_region$Identity == "Identity >= 95% and < 99%" & hit_counts_per_region$Level == tax_level), "Num_covered_genes"]
+ 
+ wilcox_out <- wilcox.test(subset95, subset99)
+ 
+ wilcox_summary[tax_level, "mean95"] <- mean(subset95)
+ wilcox_summary[tax_level, "mean99"] <- mean(subset99)
+ wilcox_summary[tax_level, "W"] <- wilcox_out$statistic
+ wilcox_summary[tax_level, "P"] <- wilcox_out$p.value
+}
+
+kable(wilcox_summary) %>%
+   kable_styling(full_width = FALSE)
+```
 # Session info {.tabset}
 
 ## Hide

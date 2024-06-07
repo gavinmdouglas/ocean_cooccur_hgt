@@ -87,19 +87,19 @@ simple_cooccur_parallel <- function(in_df,
   
 }
 
-metaG_presence <- read.table(file = "/mfs/gdouglas/projects/water_mags/coverm/combined_tables/metaG_presence.tsv.gz",
+metaG_presence <- read.table(file = "/mfs/gdouglas/projects/ocean_mags/coverm/combined_tables/metaG_presence.tsv.gz",
                              header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
 
-metaT_presence <- read.table(file = "/mfs/gdouglas/projects/water_mags/coverm/combined_tables/metaT_presence.tsv.gz",
+metaT_presence <- read.table(file = "/mfs/gdouglas/projects/ocean_mags/coverm/combined_tables/metaT_presence.tsv.gz",
                              header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
 
 metaG_simple_NULL <- simple_cooccur_parallel(in_df = metaG_presence,
                                              ncores = 64,
-                                             tmp_dir = "/mfs/gdouglas/projects/water_mags/coverm/network_working/metaG_simple_cooccur_tmp/",
-                                             output_tab = "/mfs/gdouglas/projects/water_mags/coverm/network_working/metaG_simple_cooccur.tsv")
+                                             tmp_dir = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/metaG_simple_cooccur_tmp/",
+                                             output_tab = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/metaG_simple_cooccur.tsv")
 
 metaT_simple_NULL <- simple_cooccur_parallel(in_df = metaT_presence,
                                              ncores = 64,
-                                             tmp_dir = "/mfs/gdouglas/projects/water_mags/coverm/network_working/metaT_simple_cooccur_tmp/",
-                                             output_tab = "/mfs/gdouglas/projects/water_mags/coverm/network_working/metaT_simple_cooccur.tsv")
+                                             tmp_dir = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/metaT_simple_cooccur_tmp/",
+                                             output_tab = "/mfs/gdouglas/projects/ocean_mags/coverm/network_working/metaT_simple_cooccur.tsv")
     

@@ -24,12 +24,12 @@ Output will be written to standard output.
     parser.add_argument("--tip_distances", metavar="TIP_DIST", type=str,
                         help="Path to tip distances table (gzipped).",
                         required=False,
-                        default="/mfs/gdouglas/projects/water_mags/water_mag_analysis/phylogenetic_analyses/tip_dist.tsv.gz")
+                        default="/mfs/gdouglas/projects/water_mags/phylogenetic_analyses/tip_dist.tsv.gz")
 
     parser.add_argument("--taxa_tab", metavar="TAX_TAB", type=str,
                         help="Path to taxonomic table breakdown (gzipped).",
                         required=False,
-                        default="/mfs/gdouglas/projects/water_mags/water_mag_analysis/mapfiles/MAG_taxa_breakdown.tsv.gz")
+                        default="/mfs/gdouglas/projects/water_mags/mapfiles/MAG_taxa_breakdown.tsv.gz")
 
     parser.add_argument('--assoc', action='store_true',
                         help="Print association value from RPKM association table.")
@@ -43,9 +43,9 @@ Output will be written to standard output.
     tip_dist = pd.read_table(filepath_or_buffer=args.tip_distances, compression='gzip', header=0, index_col=0)
     
     if args.assoc:
-        print("taxon_i\ttaxon_j\tassoc\ttip_dist\tdiff_tax_level")
+        print("taxa_combo\ttaxon_i\ttaxon_j\tassoc\ttip_dist\tdiff_tax_level")
     else:
-        print("taxon_i\ttaxon_j\ttip_dist\tdiff_tax_level")
+        print("taxa_combo\ttaxon_i\ttaxon_j\ttip_dist\tdiff_tax_level")
 
     with gzip.open(args.table, 'rt') as f:
         header = f.readline().strip().split('\t')
@@ -78,10 +78,12 @@ Output will be written to standard output.
                     diff_level = tax_levels[i]
                     break
             
+            taxa_combo = ",".join(sorted([taxon_i, taxon_j]))
+
             if args.assoc:
-                print(f"{taxon_i}\t{taxon_j}\t{line[assoc_i]}\t{tip_dist_val}\t{diff_level}")
+                print(f"{taxa_combo}\t{taxon_i}\t{taxon_j}\t{line[assoc_i]}\t{tip_dist_val}\t{diff_level}")
             else:
-                print(f"{taxon_i}\t{taxon_j}\t{tip_dist_val}\t{diff_level}")
+                print(f"{taxa_combo}\t{taxon_i}\t{taxon_j}\t{tip_dist_val}\t{diff_level}")
 
 
 if __name__ == '__main__':

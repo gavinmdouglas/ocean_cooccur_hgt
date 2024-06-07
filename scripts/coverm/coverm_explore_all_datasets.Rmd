@@ -1,0 +1,363 @@
+---
+title: "Explore coverM results - All datasets"
+author: "Gavin Douglas"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    code_folding: hide
+    theme: cerulean
+    toc: true
+    toc_float: true
+  pdf_document:
+    toc: true
+---
+
+```{r setup}
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(parallel))
+suppressPackageStartupMessages(library(pathviewr))
+```
+
+```{r read_in}
+read_coverm_file <- function(file, bioproject) {
+    cov_in <- read.table(file, header = TRUE, sep = '\t', stringsAsFactors = FALSE)
+    
+    if (bioproject == 'additional_output') {
+      colnames(cov_in) <- c('genome', 'mean', 'rpkm', 'trimmed_mean', 'relabun', 'covered_bases', 'length', "readcount")
+    } else {
+      colnames(cov_in) <- c('genome', 'mean', 'rpkm', 'trimmed_mean', 'relabun', 'covered_bases', 'length')
+      cov_in$readcount <- NA
+    }
+
+    cov_in$breadth <- cov_in$covered_bases / cov_in$length
+    
+    orig_col <- colnames(cov_in)
+    
+    mgs_id <- gsub('\\..*$', '', basename(file))
+    cov_in$mgs_sample <- mgs_id
+
+    cov_in$bioproject <- bioproject
+    cov_in <- cov_in[, c('bioproject', 'mgs_sample', orig_col)]
+
+    return(cov_in)
+}
+
+bioprojects <- c('PRJEB1787', 'PRJEB97740', 'PRJEB6608', 'additional_output')
+bioproject_tallies <- data.frame(bioprojects = bioprojects,
+                                 sample_number = NA)
+rownames(bioproject_tallies) <- bioprojects
+
+raw_in <- list()
+for (bioproject in bioprojects) {
+  all_files <- list.files(paste0("/mfs/gdouglas/projects/ocean_mags/coverm/", bioproject), 
+                          pattern = "cov.gz", full.names = TRUE)
+  bioproject_tallies[bioproject, 'sample_number'] <- length(all_files)
+  bioproject_raw <- mclapply(all_files, function(x) { read_coverm_file(file=x, bioproject=bioproject) }, mc.cores=64)
+  
+  raw_in[[bioproject]] <- rbindlist(bioproject_raw)
+}
+
+combined <- rbindlist(raw_in)
+rownames(combined) <- NULL
+
+combined$bioproject <- factor(combined$bioproject, levels = bioprojects)
+```
+
+# Sample sizes
+
+Reads were mapped to `r length(unique(combined$genome))` genomes using CoverM, across `r sum(bioproject_tallies$sample_number)` samples.
+
+This is the sample size breakdown by dataset:
+
+```{r sample_num_breakdown}
+kable(bioproject_tallies, format = 'html', row.names = FALSE) %>%
+  kable_styling(full_width = FALSE)
+```
+
+```{r sanity_check_num_genomes}
+# Sanity check that all mgs samples have the same number of rows.
+# (Since all genomes mapped to should be represented, even if no reads mapepd).
+if (length(table(table(combined$mgs_sample))) > 1) {
+  stop("Not all MGS samples have the same number of rows.")
+}
+```
+
+
+# Breadth of coverage breakdown
+
+I.e., horizontal coverage, based on CoverM: (number of bases covered) / (genome size). Where a base is covered if at least one read covers it.
+
+To call a genome present with more confidence you would want to look at how uniform the read mapping was across the whole genome. However, one problem with that could be that there are closely related taxa in this dataset, so perhaps a uniform distribution would not be expected anyway.
+
+## Presence calls at representative cut-offs {.tabset}
+
+*Below are the number of genomes called per genome based on calling genomes present with breadth of coverage >= 10%, 30%, 50%, and 75%.*
+
+```{r call_presence}
+combined$present0.1 <- ifelse(combined$breadth > 0.1, 1, 0)
+combined$present0.3 <- ifelse(combined$breadth > 0.3, 1, 0)
+combined$present0.5 <- ifelse(combined$breadth > 0.5, 1, 0)
+combined$present0.75 <- ifelse(combined$breadth > 0.75, 1, 0)
+```
+
+### Presence at 10% breadth
+```{r genomes_present_0.1}
+num_genomes_per_sample0.1 <- aggregate(present0.1 ~ mgs_sample + bioproject, data = combined, FUN = sum)
+
+ggplot(data = num_genomes_per_sample0.1, aes(x = present0.1)) +
+  geom_histogram(bins = 100) +
+  labs(x = 'Number of genomes present', y = 'Number of samples') +
+  ggtitle('Genomes present with breadth of coverage >= 10%') +
+  theme_bw() +
+  facet_wrap(. ~ bioproject, ncol = 1, scales = 'free_y')
+```
+
+### Presence at 30% breadth
+```{r genomes_present_0.3}
+num_genomes_per_sample0.3 <- aggregate(present0.3 ~ mgs_sample + bioproject, data = combined, FUN = sum)
+
+ggplot(data = num_genomes_per_sample0.3, aes(x = present0.3)) +
+  geom_histogram(bins = 100) +
+  labs(x = 'Number of genomes present', y = 'Number of samples') +
+  ggtitle('Genomes present with breadth of coverage >= 30%') +
+  theme_bw() +
+  facet_wrap(. ~ bioproject, ncol = 1, scales = 'free_y')
+```
+
+### Presence at 50% breadth
+```{r genomes_present_0.5}
+num_genomes_per_sample0.5 <- aggregate(present0.5 ~ mgs_sample + bioproject, data = combined, FUN = sum)
+
+ggplot(data = num_genomes_per_sample0.5, aes(x = present0.5)) +
+  geom_histogram(bins = 100) +
+  labs(x = 'Number of genomes present', y = 'Number of samples') +
+  ggtitle('Genomes present with breadth of coverage >= 50%') +
+  theme_bw() +
+  facet_wrap(. ~ bioproject, ncol = 1, scales = 'free_y')
+```
+
+### Presence at 75% breadth
+```{r genomes_present_0.75}
+num_genomes_per_sample0.75 <- aggregate(present0.75 ~ mgs_sample + bioproject, data = combined, FUN = sum)
+
+ggplot(data = num_genomes_per_sample0.75, aes(x = present0.75)) +
+  geom_histogram(bins = 100) +
+  labs(x = 'Number of genomes present', y = 'Number of samples') +
+  ggtitle('Genomes present with breadth of coverage >= 75%') +
+  theme_bw() +
+  facet_wrap(. ~ bioproject, ncol = 1, scales = 'free_y')
+```
+
+
+## Mean number of genomes per sample across continuous cut-offs {.tabset}
+
+```{r calc_mean_genomes_per_sample_across_cutoffs}
+all_breadth_mean_num <- list()
+
+breadth_cutoffs <- seq(0.01, 1, 0.01)
+
+for (bioproject in bioprojects) {
+  combined_bioproject <- combined[which(combined$bioproject == bioproject), ]
+
+  present_out <- mclapply(breadth_cutoffs,
+                          function(cutoff) {
+    tmp <- combined_bioproject
+    tmp$cutoff <- ifelse(tmp$breadth > cutoff, 1, 0)
+    mean_per_sample <- aggregate(cutoff ~ mgs_sample, data = tmp, FUN = sum)
+    return(mean(mean_per_sample$cutoff))
+  },
+  mc.cores = 64)
+  
+  all_breadth_mean_num[[bioproject]] <- data.frame(Cutoff = breadth_cutoffs,
+                                                   Mean_genomes_per_sample = sapply(present_out,
+                                                                                    function(x) { x[[1]]}))
+}
+```
+
+Try breadth of coverage cut-offs from 1% to 100% in 1% increments
+
+### PRJEB1787
+
+```{r PRJEB1787_mean_genomes_per_sample_across_cutoffs}
+PRJEB1787_elbow_i <- pathviewr::find_curve_elbow(all_breadth_mean_num[["PRJEB1787"]])
+
+ggplot(data =  all_breadth_mean_num[["PRJEB1787"]], aes(x = Cutoff, y = Mean_genomes_per_sample)) +
+    geom_point(color = "black", size = 0.5) +
+    labs(x = 'Breadth of coverage cutoff', y = 'Mean number of genomes per sample') +
+    ggtitle('Mean number of genomes per sample across breadth of coverage cutoffs') +
+    theme_bw() +
+  geom_vline(xintercept = all_breadth_mean_num[["PRJEB1787"]]$Cutoff[PRJEB1787_elbow_i],
+             linetype = 'dashed', col = "red")
+```
+
+Elbow cut-off determined to be `r all_breadth_mean_num[["PRJEB1787"]]$Cutoff[PRJEB1787_elbow_i]`
+
+### PRJEB97740
+
+
+```{r PRJEB97740_mean_genomes_per_sample_across_cutoffs}
+PRJEB97740_elbow_i <- pathviewr::find_curve_elbow(all_breadth_mean_num[["PRJEB97740"]])
+
+ggplot(data =  all_breadth_mean_num[["PRJEB97740"]], aes(x = Cutoff, y = Mean_genomes_per_sample)) +
+    geom_point(color = 'black', size = 0.5) +
+    labs(x = 'Breadth of coverage cutoff', y = 'Mean number of genomes per sample') +
+    ggtitle('Mean number of genomes per sample across breadth of coverage cutoffs') +
+    theme_bw() +
+  geom_vline(xintercept = all_breadth_mean_num[["PRJEB97740"]]$Cutoff[PRJEB97740_elbow_i],
+             linetype = 'dashed', col = "red")
+```
+
+Elbow cut-off determined to be `r all_breadth_mean_num[["PRJEB97740"]]$Cutoff[PRJEB97740_elbow_i]`
+
+### PRJEB6608
+
+```{r PRJEB6608_mean_genomes_per_sample_across_cutoffs}
+PRJEB6608_elbow_i <- pathviewr::find_curve_elbow(all_breadth_mean_num[["PRJEB6608"]])
+
+ggplot(data =  all_breadth_mean_num[["PRJEB6608"]], aes(x = Cutoff, y = Mean_genomes_per_sample)) +
+    geom_point(color = 'black', size = 0.5) +
+    labs(x = 'Breadth of coverage cutoff', y = 'Mean number of genomes per sample') +
+    ggtitle('Mean number of genomes per sample across breadth of coverage cutoffs') +
+    theme_bw() +
+  geom_vline(xintercept = all_breadth_mean_num[["PRJEB6608"]]$Cutoff[PRJEB6608_elbow_i],
+             linetype = 'dashed', col = "red")
+```
+
+### additional_output
+
+```{r additional_output_mean_genomes_per_sample_across_cutoffs}
+additional_output_elbow_i <- pathviewr::find_curve_elbow(all_breadth_mean_num[["additional_output"]])
+
+ggplot(data =  all_breadth_mean_num[["additional_output"]], aes(x = Cutoff, y = Mean_genomes_per_sample)) +
+    geom_point(color = 'black', size = 0.5) +
+    labs(x = 'Breadth of coverage cutoff', y = 'Mean number of genomes per sample') +
+    ggtitle('Mean number of genomes per sample across breadth of coverage cutoffs') +
+    theme_bw() +
+  geom_vline(xintercept = all_breadth_mean_num[["additional_output"]]$Cutoff[additional_output_elbow_i],
+             linetype = 'dashed', col = "red")
+```
+
+Elbow cut-off determined to be `r all_breadth_mean_num[["additional_output"]]$Cutoff[additional_output_elbow_i]`
+
+
+# Investigate within-species interference
+
+We are concerned that strains of the same species might share too much sequence similarity so that mapping could not be performed.
+
+```{r read_taxa}
+taxa_map <- read.table('/mfs/gdouglas/projects/ocean_mags/mapfiles/MAG_taxa_breakdown.tsv.gz',
+                       header = TRUE, sep = '\t', stringsAsFactors = FALSE, row.names = 2)
+
+species_tallies <- table(taxa_map$Species)
+species_breakdown <- data.frame(count = as.integer(species_tallies))
+rownames(species_breakdown) <- names(species_tallies)
+
+combined$species <- taxa_map[combined$genome, 'Species']
+
+# Only consider species that are classified.
+classified_species <- unique(grep("s__$", rownames(species_breakdown), invert = TRUE, value = TRUE))
+
+classified_species_w_multi_genomes <- intersect(rownames(species_breakdown)[which(species_breakdown$count >= 2)], classified_species)
+
+species_breakdown_classified <- species_breakdown[classified_species, , drop = FALSE]
+```
+
+The below analyses focus on the `r length(classified_species)` unique species that are classified at the species level.
+
+
+## Number of genomes per species
+
+Summary of the mean number of genomes per classified species.
+```{r num_species}
+summary(species_breakdown_classified$count)
+
+hist(species_breakdown_classified$count, breaks = 100, main = "", xlab = "Number of genomes in species")
+```
+
+
+## Number of genomes within species vs. max breadth
+
+Dig into whether the number of genomes per species is negatively associated with the max breadth (which you might expect if there is too much mapping competition).
+
+Restricted to genome/sample combinations with breadth >= 10%.
+
+Fortunately this bias is not observed!
+
+```{r num_genomes_vs_max_breadth}
+combined_above0.1 <- combined[which(combined$breadth > 0.1), ]
+combined_above0.1_max_per_species_sample <- aggregate(breadth ~ mgs_sample + species, data = combined_above0.1, FUN = max)
+combined_above0.1_max_per_averaged <- aggregate(breadth ~ species, data = combined_above0.1_max_per_species_sample, FUN = mean)
+
+# Add numbers of genomes in each species.
+combined_above0.1_max_per_averaged$species_count <- species_breakdown[combined_above0.1_max_per_averaged$species, 'count']
+
+combined_above0.1_max_per_averaged <- combined_above0.1_max_per_averaged[which(combined_above0.1_max_per_averaged$species %in% classified_species), ]
+
+plot(combined_above0.1_max_per_averaged$species_count, combined_above0.1_max_per_averaged$breadth,
+     xlab="Number of genomes in species",
+     ylab="Average max breadth in sample")
+
+cor.test(combined_above0.1_max_per_averaged$species_count, combined_above0.1_max_per_averaged$breadth)
+```
+
+
+## Prevalence of different strains/MAGs within same species {.tabset}
+
+Compare spread of max breadth values across all genomes within the same species.
+Hopefully there won't be a huge difference overall (as you would hope that all MAGs are clearly present at least once).
+
+Only consider classified species with at least two genomes, and considered species with > 30 and <= 30 genomes separately.
+
+Based on this analysis, there are many cases where multiple genomes can be mapped to per species, so at least this is not a universal bias. There are also several cases where one genome or the overall species are not mapped to. It's hard to know whether this is driven by biological factors or technical bias, but I think we should proceed with the data.
+
+```{r max_vs_min_species_prev}
+combined_max_by_genome <- aggregate(breadth ~ genome + species, data = combined, FUN = max)
+combined_max_by_genome <- combined_max_by_genome[which(combined_max_by_genome$species %in% classified_species_w_multi_genomes), ]
+
+combined_max_by_genome_species_max <- aggregate(breadth ~ species, data = combined_max_by_genome, FUN = max)
+combined_max_by_genome_species_min <- aggregate(breadth ~ species, data = combined_max_by_genome, FUN = min)
+
+max_compare <- data.frame(species = combined_max_by_genome_species_max$species,
+                          max_breadth = combined_max_by_genome_species_max$breadth,
+                          min_breadth = NA,
+                          genome_num = NA)
+
+rownames(max_compare) <- max_compare$species
+rownames(combined_max_by_genome_species_min) <- combined_max_by_genome_species_min$species
+max_compare$min_breadth <- combined_max_by_genome_species_min[rownames(max_compare), "breadth"]
+
+max_compare$genome_num <- species_breakdown[max_compare$species, "count"]
+```
+
+### <= 30 genomes per species
+
+```{r max_vs_min_under30}
+ggplot(data = max_compare[which(max_compare$genome_num <= 30), ], aes(x = max_breadth, y = min_breadth, colour = genome_num)) +
+         geom_point() +
+  theme_bw() +
+     xlab("Max(max genome breadth per species)") +
+     ylab("Min(max genome breadth per species)")
+```
+
+### > 30 genomes per species
+
+```{r max_vs_min_over30}
+ggplot(data = max_compare[which(max_compare$genome_num > 30), ], aes(x = max_breadth, y = min_breadth, colour = genome_num)) +
+         geom_point() +
+  theme_bw() +
+     xlab("Max(max genome breadth per species)") +
+     ylab("Min(max genome breadth per species)")
+```
+
+
+# Session info {.tabset}
+
+## Hide
+
+## Show
+
+```{r show_info}
+sessionInfo()
+```
