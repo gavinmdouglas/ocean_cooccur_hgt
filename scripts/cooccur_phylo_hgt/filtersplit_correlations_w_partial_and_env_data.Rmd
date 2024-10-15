@@ -1,0 +1,73 @@
+---
+title: "Filter-split correlations summarized"
+author: "Gavin Douglas"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    code_folding: hide
+    theme: cerulean
+    toc: true
+    toc_float: true
+---
+
+```{r setup}
+suppressPackageStartupMessages(library(circlize))
+suppressPackageStartupMessages(library(cowplot))
+suppressPackageStartupMessages(library(ggbeeswarm))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(reshape2))
+suppressPackageStartupMessages(library(grid))
+```
+
+```{r source_code}
+source('~/scripts/ocean_mag_hgt/scripts/cooccur_phylo_hgt/explore_correlation_code.R')
+```
+
+# Overall filter-split summary
+
+## Pairwise Spearman correlations {.tabset}
+
+```{r read_pairwise_files}
+freeliv_blast_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/blast/partial_corr_out_median/", approaches, suffix = "_freeliv.pairwise.tsv")
+freeliv_ranger_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/rangerdtl/partial_corr_out_median/", approaches, suffix = "_freeliv.pairwise.tsv")
+
+lessfiltered_blast_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/blast/partial_corr_out_median/", approaches, suffix = "_lessfiltered.pairwise.tsv")
+lessfiltered_ranger_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/rangerdtl/partial_corr_out_median/", approaches, suffix = "_lessfiltered.pairwise.tsv")
+```
+
+```{r blast_pairwise_spearman, fig.height=7, fig.width=8, results='asis', echo=FALSE}
+
+null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=freeliv_blast_pairwise_in$mean_pairwise,
+                                              in_mat=freeliv_blast_pairwise_in$mean_pairwise_combined,
+                                              approaches=approaches,
+                                              category="BLAST free-living")
+
+null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=freeliv_ranger_pairwise_in$mean_pairwise,
+                                              in_mat=freeliv_ranger_pairwise_in$mean_pairwise_combined,
+                                              approaches=approaches,
+                                              category="RANGER-DTL free-living")
+
+null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=lessfiltered_blast_pairwise_in$mean_pairwise,
+                                              in_mat=lessfiltered_blast_pairwise_in$mean_pairwise_combined,
+                                              approaches=approaches,
+                                              category="BLAST less-filtered")
+
+null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=lessfiltered_ranger_pairwise_in$mean_pairwise,
+                                              in_mat=lessfiltered_ranger_pairwise_in$mean_pairwise_combined,
+                                              approaches=approaches,
+                                              category="RANGER-DTL less-filtered")
+```
+
+
+
+# Session info {.tabset}
+
+## Hide
+
+## Show
+
+```{r show_info}
+sessionInfo()
+```

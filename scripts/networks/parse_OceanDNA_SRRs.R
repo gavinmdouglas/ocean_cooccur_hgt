@@ -6,9 +6,9 @@ rm(list = ls(all.names = TRUE))
 
 library("readxl")
 
-TableS1 <- read_excel("/mfs/gdouglas/projects/water_mags/additional/OceanDNA_supp_metadata/Supp_File_S1.xlsx", skip=2)
+TableS1 <- read_excel("/mfs/gdouglas/projects/ocean_mags/metadata/OceanDNA_supp_metadata/Supp_File_S1.xlsx", skip=2)
 
-Nico_subset <- read_excel("/mfs/gdouglas/projects/water_mags/additional/OceanDNA_supp_metadata/Samples_to_keep.xlsx", skip=1)
+Nico_subset <- read_excel("/mfs/gdouglas/projects/ocean_mags/metadata/OceanDNA_supp_metadata/Samples_to_keep.xlsx", skip=1)
 
 orig_bioprojects <- unique(TableS1$bioproject)
 subset_bioprojects <- unique(Nico_subset$bioproject)
@@ -25,7 +25,7 @@ for (bioproject in subset_bioprojects) {
     run_ids <- c(run_ids, strsplit(raw_run_ids[i], ",")[[1]])
   }
   
-  outfile <- paste0("/mfs/gdouglas/projects/water_mags/additional/id_by_bioproject/",
+  outfile <- paste0("/mfs/gdouglas/projects/ocean_mags/additional/id_by_bioproject/",
                    bioproject, ".txt")
   
   write.table(x = run_ids, file = outfile, quote = FALSE, col.names = FALSE, row.names = FALSE)
@@ -34,5 +34,5 @@ for (bioproject in subset_bioprojects) {
 
 # Also get simple table in TSV format (for subset of samples of interest).
 write.table(x = Nico_subset,
-            file = "/mfs/gdouglas/projects/water_mags/additional/OceanDNA_supp_metadata/subset_tab.tsv",
+            file = "/mfs/gdouglas/projects/ocean_mags/additional/OceanDNA_supp_metadata/subset_tab.tsv",
             sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)

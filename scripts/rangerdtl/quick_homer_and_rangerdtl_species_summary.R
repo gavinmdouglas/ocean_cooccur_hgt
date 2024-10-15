@@ -70,3 +70,4 @@ ggplot(data = full_summary, aes(x = num_genomes, y = num_multi_gene_transfer_eve
 write.table(x = full_summary,
             file = "/mfs/gdouglas/projects/ocean_mags/water_mag_analysis/species_DTL_analyses/homer_rangerdtl_combined_summary.tsv",
             quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE)
+

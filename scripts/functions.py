@@ -15,6 +15,21 @@ def read_ids(filename):
     return(ids)
 
 
+def reverse_complement(dna_sequence):
+    complement = {
+        'A': 'T',
+        'T': 'A',
+        'C': 'G',
+        'G': 'C',
+        'N': 'N'
+    }
+
+    dna_sequence = dna_sequence.upper()
+    complement_sequence = ''.join([complement[base] for base in dna_sequence])
+    reverse_complement_sequence = complement_sequence[::-1]
+    return reverse_complement_sequence
+
+
 def read_fasta(filename, cut_header=False):
     '''Read in FASTA file (gzipped or not) and return dictionary with each
     independent sequence id as a key and the corresponding sequence string as

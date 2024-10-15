@@ -1,116 +1,76 @@
 rm(list = ls(all.names = TRUE))
 
-library(reshape2)
-library(parallel)
-library(data.table)
+source('~/scripts/ocean_mag_hgt/scripts/coverm/prep_coverage_tables_functions.R')
 
-prep_presence_tab <- function(cov_tab,
-                              presence_cutoff,
-                              min_samples_w_genome=10,
-                              min_genomes_per_sample=1) {
-  cov_tab$present <- 0
-  
-  cov_tab[which(cov_tab$breadth >= presence_cutoff), "present"] <- 1
-  
-  presence_matrix <- reshape2::dcast(data = cov_tab,
-                                     formula = mgs_sample ~ genome,
-                                     value.var = "present",
-                                     fill = 0)
-  
-  rownames(presence_matrix) <- presence_matrix$mgs_sample
-  presence_matrix <- presence_matrix[, which(colnames(presence_matrix) != "mgs_sample")]
-  
-  sample_tallies <- rowSums(presence_matrix)
-  presence_matrix <- presence_matrix[which(sample_tallies >= min_genomes_per_sample), ]
-  
-  taxon_presence_tallies <- colSums(presence_matrix)
-  presence_matrix <- presence_matrix[, which(taxon_presence_tallies >= min_samples_w_genome)]
-  
-  return(presence_matrix)
+coverm_set1 <- coverm_read_by_folder("/mfs/gdouglas/projects/ocean_mags/coverm/additional_output")
+coverm_set2 <- coverm_read_by_folder("/mfs/gdouglas/projects/ocean_mags/coverm/additional_OceanDNA_round2")
+
+# Confirm that all expected metagenomics samples are present.
+# First, run sanity check that no samples intersect between these two sets.
+if (length(intersect(unique(coverm_set1$mgs_sample), unique(coverm_set2$mgs_sample))) > 0) {
+  stop('ERROR - metagenomics sample output in both sets!')
 }
 
-raw_in <- list()
-read_coverm_file <- function(file, bioproject) {
-  cov_in <- read.table(file, header = TRUE, sep = '\t', stringsAsFactors = FALSE)
-  
-  if (bioproject == 'additional_output') {
-    colnames(cov_in) <- c('genome', 'mean', 'rpkm', 'trimmed_mean', 'relabun', 'covered_bases', 'length', "readcount")
-  } else {
-    colnames(cov_in) <- c('genome', 'mean', 'rpkm', 'trimmed_mean', 'relabun', 'covered_bases', 'length')
-    cov_in$readcount <- NA
-  }
-  
-  cov_in$breadth <- cov_in$covered_bases / cov_in$length
-  
-  orig_col <- colnames(cov_in)
-  
-  mgs_id <- gsub('\\..*$', '', basename(file))
-  cov_in$mgs_sample <- mgs_id
-  
-  cov_in$bioproject <- bioproject
-  cov_in <- cov_in[, c('bioproject', 'mgs_sample', orig_col)]
-  
-  return(cov_in)
+coverm_all <- rbind(coverm_set1, coverm_set2)
+rownames(coverm_all) <- NULL
+
+# First, confirm that all Tara ocean (DNA) samples are present.
+PRJEB1787_metadata <- read.table('~/projects/ocean_mags/metadata/PRJEB1787_metadata.csv',
+                                 header = TRUE, sep = ',', stringsAsFactors = FALSE)
+if (length(which(! PRJEB1787_metadata$Sample %in% coverm_all$mgs_sample)) > 0) {
+  stop('ERROR - some samples in PRJEB1787 missing!')
+} else {
+  number_PRJEB1787_present <- length(which(PRJEB1787_metadata$Sample %in% coverm_all$mgs_sample))
+  message(number_PRJEB1787_present, ' of ', nrow(PRJEB1787_metadata), ' PRJEB1787 samples present in CoverM output.')
 }
 
-coverm_read_by_bioproject <- function(bioproject) {
-  all_files <- list.files(paste0("/mfs/gdouglas/projects/ocean_mags/coverm/", bioproject), 
-                          pattern = "cov.gz", full.names = TRUE)
-  if (length(all_files) == 0) { stop("Error, no files")}
-  bioproject_raw <- mclapply(all_files, function(x) { read_coverm_file(file=x, bioproject=bioproject) }, mc.cores=64)
-  
-  return(data.frame(rbindlist(bioproject_raw)))
+PRJEB9740_metadata <- read.table('~/projects/ocean_mags/metadata/PRJEB9740_metadata.csv',
+                                 header = TRUE, sep = ',', stringsAsFactors = FALSE)
+if (length(which(! PRJEB9740_metadata$Sample %in% coverm_all$mgs_sample)) > 0) {
+  stop('ERROR - some samples in PRJEB9740 missing!')
+} else {
+ number_PRJEB9740_present <- length(which(PRJEB9740_metadata$Sample %in% coverm_all$mgs_sample))
+ message(number_PRJEB9740_present, ' of ', nrow(PRJEB9740_metadata), ' PRJEB9740 samples present in CoverM output.')
 }
 
-additional_coverm <- coverm_read_by_bioproject("additional_output")
-
-PRJEB1787_coverm <- coverm_read_by_bioproject("PRJEB1787")
-PRJEB1787_sample_run_map <- read.table("/mfs/gdouglas/projects/ocean_mags/coverm/combined_tables/Tara_dedup_id_mapping/PRJEB1787.tsv",
-                                       header = TRUE, sep = "\t", row.names = 2, stringsAsFactors = FALSE)
-PRJEB1787_coverm <- PRJEB1787_coverm[which(PRJEB1787_coverm$mgs_sample %in% rownames(PRJEB1787_sample_run_map)), ]
-PRJEB1787_coverm$mgs_sample_recoded <- PRJEB1787_sample_run_map[PRJEB1787_coverm$mgs_sample, "sample_name"]
-PRJEB1787_coverm$mgs_sample <- PRJEB1787_coverm$mgs_sample_recoded
-PRJEB1787_coverm <- PRJEB1787_coverm[, -which(colnames(PRJEB1787_coverm) == "mgs_sample_recoded")]
-
-PRJEB9740_coverm <- coverm_read_by_bioproject("PRJEB9740")
-PRJEB9740_sample_run_map <- read.table("/mfs/gdouglas/projects/ocean_mags/coverm/combined_tables/Tara_dedup_id_mapping/PRJEB9740.tsv",
-                                       header = TRUE, sep = "\t", row.names = 2, stringsAsFactors = FALSE)
-PRJEB9740_coverm <- PRJEB9740_coverm[which(PRJEB9740_coverm$mgs_sample %in% rownames(PRJEB9740_sample_run_map)), ]
-PRJEB9740_coverm$mgs_sample_recoded <- PRJEB9740_sample_run_map[PRJEB9740_coverm$mgs_sample, "sample_name"]
-PRJEB9740_coverm$mgs_sample <- PRJEB9740_coverm$mgs_sample_recoded
-PRJEB9740_coverm <- PRJEB9740_coverm[, -which(colnames(PRJEB9740_coverm) == "mgs_sample_recoded")]
-
-combined_dna <- rbind(additional_coverm, PRJEB1787_coverm)
-combined_dna <- rbind(combined_dna, PRJEB9740_coverm)
-rownames(combined_dna) <- NULL
+# Note that the above checks are mainly sanity checks, as all but one
+# Tara sample (ERS488919) is present in the OceanDNA water sample metadata anyway.
+OceanDNA_water_metadata <- read.table('/mfs/gdouglas/projects/ocean_mags/metadata/OceanDNA_supp_metadata/Supp_File_S1_water_samples.tsv',
+                                      header = TRUE, sep = '\t', stringsAsFactors = FALSE)
+OceanDNA_water_metadata$sample_name[which(OceanDNA_water_metadata$sample_name == 'ERS492821_ERS492814')] <- 'ERS492814'
+if (length(which(! OceanDNA_water_metadata$sample_name %in% coverm_all$mgs_sample)) > 0) {
+  stop('ERROR - some samples in PRJEB9740 missing!')
+} else {
+  number_OceanDNA_present <- length(which(OceanDNA_water_metadata$sample_name %in% coverm_all$mgs_sample))
+  message(number_OceanDNA_present, ' of ', nrow(OceanDNA_water_metadata), ' OceanDNA samples present in CoverM output.')
+}
+message('This is the number of unique CoverM samples (pre-filtering): ', length(unique(coverm_all$mgs_sample)))
 
 # Create presence tables.
-dna_presence <- prep_presence_tab(cov_tab = combined_dna,
+dna_presence <- prep_presence_tab(cov_tab = coverm_all,
                                   presence_cutoff = 0.30)
 
 # Create RPKM tables, based on the same samples/genomes as in the presence tables.
-dna_rpkm <- reshape2::dcast(data = combined_dna,
+dna_rpkm <- reshape2::dcast(data = coverm_all,
                             formula = mgs_sample ~ genome,
                             value.var = "rpkm",
                             fill = 0)
 
-dna_rpkm <- dna_rpkm[which(dna_rpkm$mgs_sample %in% rownames(dna_presence)),
-                     c("mgs_sample", colnames(dna_presence))]
+rownames(dna_rpkm) <- dna_rpkm$mgs_sample
+dna_rpkm <- dna_rpkm[, -which(colnames(dna_rpkm) == 'mgs_sample')]
 
-# Write output tables.
-write_table_w_rowcol <- function(x, outfile) {
-  orig_col <- colnames(x)
-  x$sample <- rownames(x)
-  x <- x[, c("sample", orig_col)]
-  write.table(x = x,
-              file = outfile,
-              sep = "\t",
-              row.names = FALSE,
-              col.names = TRUE,
-              quote = FALSE)
+dna_rpkm <- dna_rpkm[rownames(dna_presence), colnames(dna_presence)]
+
+# Also, set RPKM values for taxa with breadth below the presence cut-off to 0.
+dna_rpkm[dna_presence == 0] <- 0
+
+# Check whether ERS488919 (non-OceanDNA sample) filtered out due to prevalence cut-offs anyway.
+if ("ERS488919" %in% rownames(dna_presence)) {
+  message('Extra Tara ocean sample made it through filters...')
 }
 
-write_table_w_rowcol(x = dna_presence, outfile = "~/projects/ocean_mags/coverm/combined_tables/metaG_presence_allsamples.tsv")
+write_gzip_table_w_rowcol(x = dna_presence,
+                          outfile = '~/projects/ocean_mags/networks/combined_tables/metaG_presence_allsamples.tsv.gz')
 
-write.table(x = dna_rpkm, file = "~/projects/ocean_mags/coverm/combined_tables/metaG_rpkm_allsamples.tsv",
-            sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+write_gzip_table_w_rowcol(x = dna_rpkm,
+                          outfile = '~/projects/ocean_mags/networks/combined_tables/metaG_rpkm_allsamples.tsv.gz')

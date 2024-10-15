@@ -188,7 +188,7 @@ print(ggplot(data = tara_pairwise_combined, aes(x = Comparison_clean, y = r, fil
 )
 ```
 
-#### RANGER (strain and species)
+#### RANGER (between strains)
 
 ```{r tara_ocean_spearman_pairwise_ranger, fig.height=7, fig.width=11}
 print(ggplot(data = tara_ranger_pairwise_combined, aes(x = Comparison_clean, y = r, fill = Test_type)) +
@@ -201,10 +201,46 @@ print(ggplot(data = tara_ranger_pairwise_combined, aes(x = Comparison_clean, y =
                               ylab("Spearman's correlation coefficient") +
                               xlab("Pairwise comparison") +
                               labs(fill="Comparison type") +
-                              ggtitle("Tara ocean samples (RANGER - strains and species)") +
+                              ggtitle("Tara ocean samples (RANGER - between strains)") +
                               scale_fill_manual(values=comparison_type_cols)
 )
 ```
+
+And a really basic version for a presentation:
+
+```{r tara_ocean_spearman_pairwise_ranger_simple, fig.height=7, fig.width=8}
+
+tara_ranger_pairwise_combined_simple <- tara_ranger_pairwise_combined
+
+tara_ranger_pairwise_combined_simple$Comparison_clean <- as.character(tara_ranger_pairwise_combined_simple$Comparison_clean)
+tara_ranger_pairwise_combined_simple <- tara_ranger_pairwise_combined_simple[grep("(Simple)", tara_ranger_pairwise_combined_simple$Comparison_clean, invert = TRUE), ]
+tara_ranger_pairwise_combined_simple <- tara_ranger_pairwise_combined_simple[grep("(propr)", tara_ranger_pairwise_combined_simple$Comparison_clean, invert = TRUE), ]
+
+tara_ranger_pairwise_combined_simple <- tara_ranger_pairwise_combined_simple[grep("(propr)", tara_ranger_pairwise_combined_simple$Comparison_clean, invert = TRUE), ]
+
+tara_ranger_pairwise_combined_simple$Comparison_clean[which(tara_ranger_pairwise_combined_simple$Comparison_clean == "HGT (gene count)\nvs. Tip dist.")] <- "HGT vs. Tip dist."
+tara_ranger_pairwise_combined_simple$Comparison_clean[which(tara_ranger_pairwise_combined_simple$Comparison_clean == "Co-occur (HyperG)\nvs. Tip dist.")] <- "Co-occur. vs. Tip dist."
+tara_ranger_pairwise_combined_simple$Comparison_clean[which(tara_ranger_pairwise_combined_simple$Comparison_clean == "Co-occur (HyperG)\nvs. HGT (gene count)")] <- "Co-occur. vs. HGT"
+
+tara_ranger_pairwise_combined_simple$Comparison_clean <- factor(tara_ranger_pairwise_combined_simple$Comparison_clean,
+                                                                levels = c("HGT vs. Tip dist.", "Co-occur. vs. Tip dist.", "Co-occur. vs. HGT"))
+
+print(ggplot(data = tara_ranger_pairwise_combined_simple, aes(x = Comparison_clean, y = r, fill = Test_type)) +
+                              geom_quasirandom(colour = "grey80", alpha = 0.5) +
+                              geom_boxplot(outlier.shape = NA, alpha=0.5) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5),
+                                    legend.position = "none") +
+                              ylab("Spearman's correlation coefficient") +
+                              xlab("Pairwise comparison") +
+                              labs(fill="Comparison type") +
+                              scale_fill_manual(values=comparison_type_cols)
+        
+)
+```
+
 
 #### HGT vs. Tip dist. (all subsets)
 
@@ -328,7 +364,7 @@ print(ggplot(data = extraonly_pairwise_combined, aes(x = Comparison_clean, y = r
 )
 ```
 
-#### RANGER (strain and species)
+#### RANGER (strains)
 
 ```{r extraonly_ocean_spearman_pairwise_ranger, fig.height=7, fig.width=11}
 print(ggplot(data = extraonly_ranger_pairwise_combined, aes(x = Comparison_clean, y = r, fill = Test_type)) +
@@ -341,7 +377,7 @@ print(ggplot(data = extraonly_ranger_pairwise_combined, aes(x = Comparison_clean
                               ylab("Spearman's correlation coefficient") +
                               xlab("Pairwise comparison") +
                               labs(fill="Comparison type") +
-                              ggtitle("Additional ocean samples (RANGER - strains and species)") +
+                              ggtitle("Additional ocean samples (RANGER - between strains)") +
                               scale_fill_manual(values=comparison_type_cols)
 )
 ```
@@ -381,7 +417,7 @@ print(ggplot(data = tara_partial_combined, aes(x = Comparison, y = r,)) +
 )
 ```
 
-#### RANGER (species and strains)
+#### RANGER (strains)
 
 ```{r tara_ranger_ocean_spearman_partial_blast, fig.height=7, fig.width=7}
 tara_ranger_partial_combined$Comparison[which(tara_ranger_partial_combined$Comparison == "Co-occur (Simple)")] <- "Simple"
@@ -398,7 +434,7 @@ print(ggplot(data = tara_ranger_partial_combined, aes(x = Comparison, y = r,)) +
                                     plot.title = element_text(hjust = 0.5)) +
                               ylab("Partial Spearman's correlation coefficient") +
                               xlab("Co-occurrence approach") +
-                              ggtitle("Tara ocean samples (RANGER - species and strains)\nSpearman vs. HGT (gene count), controlling for tip dist.")
+                              ggtitle("Tara ocean samples (RANGER - between strains)\nSpearman vs. HGT (gene count), controlling for tip dist.")
 )
 ```
 
@@ -425,7 +461,7 @@ print(ggplot(data = extraonly_partial_combined, aes(x = Comparison, y = r,)) +
 )
 ```
 
-#### RANGER (species and strains)
+#### RANGER (strains)
 
 ```{r extraonly_ranger_ocean_spearman_partial_blast, fig.height=7, fig.width=7}
 extraonly_ranger_partial_combined$Comparison[which(extraonly_ranger_partial_combined$Comparison == "Co-occur (Simple)")] <- "Simple"
@@ -442,7 +478,7 @@ print(ggplot(data = extraonly_ranger_partial_combined, aes(x = Comparison, y = r
                                     plot.title = element_text(hjust = 0.5)) +
                               ylab("Partial Spearman's correlation coefficient") +
                               xlab("Co-occurrence approach") +
-                              ggtitle("Additional ocean samples (RANGER - species and strains)\nSpearman vs. HGT (gene count), controlling for tip dist.")
+                              ggtitle("Additional ocean samples (RANGER - between strains)\nSpearman vs. HGT (gene count), controlling for tip dist.")
 )
 ```
 
@@ -557,6 +593,50 @@ for (hgt_type in names(mean_pairwise)) {
     cat("\n\n")
 
 }
+
+```
+
+### Simple RANGER heatmap
+
+For presentation
+
+```{r blast_pairwise_spearman_simple, fig.height=7, fig.width=8, results='asis', echo=FALSE}
+
+hgt_type <- "RANGER"
+
+in_mat <- as.matrix(mean_pairwise_combined[[hgt_type]])
+
+for (approach in approaches) {
+  if (length(mean_pairwise[[hgt_type]][[approach]]$nonsig_comparisons) > 0) {
+    stop("Note that there are non-sig comparisons, so the colouring should be changed.")
+  }
+}
+
+# Only keep HyperG co-occurrence.
+in_mat <- in_mat[-which(rownames(in_mat) == "cooccur_simple_cooccur"), ]
+in_mat <- in_mat[-which(rownames(in_mat) == "cooccur_asso"), ]
+
+in_mat_char <- in_mat
+for (i in 1:ncol(in_mat)) {
+  in_mat_char[, i] <- sprintf("%.2f", in_mat[, i])
+}
+in_mat_char[in_mat_char == "NA"] <- ""
+col_fun = colorRamp2(c(-1, 0, 1), c("#6699CC", "white", "#CC3333"))
+
+heatmap_out <- ComplexHeatmap::Heatmap(matrix = in_mat,
+                                       col = col_fun,
+                                       cluster_rows = FALSE,
+                                       cluster_columns = FALSE,
+                                       row_split = c(" ", " ", " ", " ", " ", "  ", "   ", "     "),
+                                       row_labels = clean_ids(rownames(in_mat)),
+                                       column_labels = clean_ids(colnames(in_mat)),
+                                       na_col = "grey50",
+                                       cell_fun = function(j, i, x, y, width, height, fill) {
+                                         grid.text(in_mat_char[i, j], x, y, gp = gpar(fontsize = 10))
+                                       },
+                                       name = 'Spearman correlation')
+
+print(heatmap_out)
 
 ```
 
@@ -712,7 +792,7 @@ print(ggplot(data = allsamples_partial_combined, aes(x = Approach, y = r, fill =
 )
 ```
 
-### RANGER (species and strains)
+### RANGER (strains)
 
 ```{r allsamples_ranger_ocean_spearman_partial_blast, fig.height=4, fig.width=6}
 allsamples_ranger_partial_combined <- allsamples_ranger_partial_combined[which(! is.na(allsamples_ranger_partial_combined$r)), ]
@@ -726,8 +806,66 @@ print(ggplot(data = allsamples_ranger_partial_combined, aes(x = Approach, y = r,
                                     plot.title = element_text(hjust = 0.5)) +
                               ylab("Partial Spearman's correlation coefficient") +
                               xlab("Co-occurrence approach") +
-                              ggtitle("All ocean samples (RANGER - species and strains)") +
+                              ggtitle("All ocean samples (RANGER - between strains)") +
                               labs(fill="Spearman approach") +
+                              scale_fill_manual(values = c("#c7733b", "#8d75ca", "#78a450", "#c16786"))
+)
+```
+
+## Partial Spearman correlations (HyperG only) {.tabset}
+
+### BLAST (genus and above)
+
+```{r allsamples_ocean_spearman_partial_blast_hyperg, fig.height=5, fig.width=5}
+
+allsamples_partial_hyperg <- allsamples_partial_combined[which(allsamples_partial_combined$Approach == 'HyperG'), ]
+
+allsamples_partial_hyperg$type <- as.character(allsamples_partial_hyperg$type)
+allsamples_partial_hyperg$type[which(allsamples_partial_hyperg$type == 'Tip dist. controlled')] <- 'Tip dist.\ncontrolled'
+allsamples_partial_hyperg$type[which(allsamples_partial_hyperg$type == 'All var. controlled')] <- 'All var.\ncontrolled'
+allsamples_partial_hyperg$type[which(allsamples_partial_hyperg$type == 'All var. controlled (permuted)')] <- 'All var.\ncontrolled\n(permuted)'
+allsamples_partial_hyperg$type <- factor(allsamples_partial_hyperg$type,
+                                         levels = c("No control", "Tip dist.\ncontrolled", "All var.\ncontrolled", "All var.\ncontrolled\n(permuted)"))
+
+print(ggplot(data = allsamples_partial_hyperg, aes(x = type, y = r, fill = type)) +
+                              geom_quasirandom(dodge.width=.75, alpha = 0.5, col="grey80") +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5),
+                                    legend.position = "none") +
+                              ylab("Correlation coefficient") +
+                              xlab("Spearman approach") +
+                              ggtitle("All ocean samples (BLAST - genus and above)") +
+                              scale_fill_manual(values = c("#c7733b", "#8d75ca", "#78a450", "#c16786"))
+)
+```
+
+### RANGER (strains)
+
+```{r allsamples_ranger_ocean_spearman_partial_blast_hyperg, fig.height=5, fig.width=5}
+allsamples_ranger_partial_hyperg <- allsamples_ranger_partial_combined[which(allsamples_ranger_partial_combined$Approach == 'HyperG'), ]
+
+allsamples_ranger_partial_hyperg$type <- as.character(allsamples_ranger_partial_hyperg$type)
+allsamples_ranger_partial_hyperg$type[which(allsamples_ranger_partial_hyperg$type == 'Tip dist. controlled')] <- 'Tip dist.\ncontrolled'
+allsamples_ranger_partial_hyperg$type[which(allsamples_ranger_partial_hyperg$type == 'All var. controlled')] <- 'All var.\ncontrolled'
+allsamples_ranger_partial_hyperg$type[which(allsamples_ranger_partial_hyperg$type == 'All var. controlled (permuted)')] <- 'All var.\ncontrolled\n(permuted)'
+allsamples_ranger_partial_hyperg$type <- factor(allsamples_ranger_partial_hyperg$type,
+                                         levels = c("No control", "Tip dist.\ncontrolled", "All var.\ncontrolled", "All var.\ncontrolled\n(permuted)"))
+
+
+print(ggplot(data = allsamples_ranger_partial_hyperg, aes(x = type, y = r, fill = type)) +
+                              geom_quasirandom(dodge.width=.75, alpha = 0.5, col="grey80") +
+                              geom_boxplot(outlier.shape = NA, alpha=0.7) +
+                              theme_bw() +
+                              theme(panel.grid.major.x = element_blank(),
+                                    panel.grid.minor.x = element_blank(),
+                                    plot.title = element_text(hjust = 0.5),
+                                    legend.position = "none") +
+                              ylab("Correlation coefficient") +
+                              xlab("Spearman approach") +
+                              ggtitle("All ocean samples (RANGER - between strains)") +
                               scale_fill_manual(values = c("#c7733b", "#8d75ca", "#78a450", "#c16786"))
 )
 ```

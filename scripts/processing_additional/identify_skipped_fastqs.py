@@ -1,0 +1,52 @@
+#!/usr/bin/python3
+
+import os
+import sys
+from collections import defaultdict
+
+# Identify FASTQs that were skipped due being the same biological sample as another but just a different filter size.
+# (Decided later that I want to keep all samples, regardless of filter size).
+# First, read through metadata table to figure out which samples are redundant based on metadata.
+redundant_samples = defaultdict(list)
+
+sample_to_runs = dict()
+
+with open("/mfs/gdouglas/projects/ocean_mags/metadata/OceanDNA_supp_metadata/subset_tab.tsv", "r") as metadata_fh:
+    metadata_col = metadata_fh.readline().strip().split("\t")
+    metadata_col_to_i = {col: i for i, col in enumerate(metadata_col)}
+
+    for line in metadata_fh:
+        line = line.strip().split("\t")
+        sample_id = line[metadata_col_to_i["sample_name"]]
+        collection_date = line[metadata_col_to_i["collection_date"]]
+        depth = line[metadata_col_to_i["depth"]]
+        latitude = line[metadata_col_to_i["latitude"]]
+        # Note that the typo "longigute" was in the original metadata table.
+        longitude = line[metadata_col_to_i["longigute"]]
+        percent_prok = line[metadata_col_to_i["kaiju_percent_of_Bacteria"]]
+
+        collection_info = (collection_date, depth, latitude, longitude)
+        sample_id_info = (sample_id, float(percent_prok))
+        redundant_samples[collection_info].append(sample_id_info)
+
+        sample_to_runs[sample_id] = line[metadata_col_to_i["sra_run"]]
+
+nonindependent_samples_to_exclude = set()
+for collection_info, sample_info_list in redundant_samples.items():
+    if len(sample_info_list) > 1:
+        best_sample = sample_info_list[0][0]
+        highest_prok = sample_info_list[0][1]
+        all_samples = set([best_sample])
+        for i in range(1, len(sample_info_list)):
+            all_samples.add(sample_info_list[i][0])
+            if sample_info_list[i][1] > highest_prok:
+                best_sample = sample_info_list[i][0]
+                highest_prok = sample_info_list[i][1]
+
+        nonindependent_samples_to_exclude.update(all_samples - set([best_sample]))
+
+nonindependent_samples_to_exclude = sorted(list(nonindependent_samples_to_exclude))
+
+print('excluded_sample_last_time\tSRA_run(s)')
+for sample in nonindependent_samples_to_exclude:
+    print(sample + '\t' + sample_to_runs[sample])

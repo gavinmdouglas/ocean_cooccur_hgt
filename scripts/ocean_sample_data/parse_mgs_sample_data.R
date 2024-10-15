@@ -1,23 +1,16 @@
 rm(list = ls(all.names = TRUE))
 
 # Process all data for ocean metagenomics data related to environmental conditions, location, sampling time, etc.
-# This script simply subsets the table to samples overlapping with the "all-sample" CoverM output, and
-# outputs a clean table for downstream use.
+# Outputs clean subset of columns of interest.
+# Also, get mean values per sample.
 
-TableS1 <- read.table("/mfs/gdouglas/projects/ocean_mags/metadata/OceanDNA_supp_metadata/Supp_File_S1.tsv",
-                      header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+source('~/scripts/ocean_mag_hgt/scripts/ocean_sample_data/compute_mean_and_median_samplevals_function.R')
+
+info <- read.table("/mfs/gdouglas/projects/ocean_mags/metadata/OceanDNA_supp_metadata/Supp_File_S1_water_samples.tsv",
+                       header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 # Re-code one sample that for some reason is listed as two IDs (just use the one in the metadata file downloaded from SRA).
-TableS1[which(TableS1$sample_name == "ERS492821_ERS492814"), "sample_name"] <- "ERS492814"
-
-allsamples_presence <- read.table("/mfs/gdouglas/projects/ocean_mags/coverm/combined_tables/metaG_presence_allsamples.tsv.gz",
-                                  header = TRUE, sep = "\t", row.names = 1)
-
-info <- TableS1[which(TableS1$sample_name %in% rownames(allsamples_presence)), ]
-
-if (length(setdiff(rownames(allsamples_presence), info$sample_name)) > 0 | length(setdiff(info$sample_name, rownames(allsamples_presence))) > 0) {
-  stop("Not all samples matched") 
-}
+info[which(info$sample_name == "ERS492821_ERS492814"), "sample_name"] <- "ERS492814"
 
 colnames(info)[which(colnames(info) == "longigute")] <- "longitude"
 
@@ -44,37 +37,31 @@ info$salinity <- as.numeric(info$salinity)
 
 # Write out this table.
 write.table(x = info,
-            file = "/mfs/gdouglas/projects/ocean_mags/coverm/combined_tables/allsamples_present_metadata.tsv",
+            file = "/mfs/gdouglas/projects/ocean_mags/metadata/OceanDNA_supp_metadata/Supp_File_S1_water_samples_clean.tsv",
             col.names = TRUE, row.names = FALSE, sep = "\t", quote = FALSE)
+
+rownames(info) <- info$sample_name
 
 # Then also get mean values for variable of interest per genome
 # (based on the samples they are present across).
-rownames(info) <- info$sample_name
+allsamples_presence <- read.table(file = "/mfs/gdouglas/projects/ocean_mags/networks/combined_tables/metaG_presence_allsamples.tsv.gz",
+                                  header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
 
-vars_of_interest <- c("depth", "latitude", "longitude", "temperature", "oxygen", "salinity")
+compute_mean_median_sample_vals(info_tab=info,
+                                presence_tab=allsamples_presence,
+                                outprefix='/mfs/gdouglas/projects/ocean_mags/networks/combined_tables/allsamples_present_metadata')
 
-mean_tab <- data.frame(matrix(NA,
-                              nrow = ncol(allsamples_presence),
-                              ncol = length(vars_of_interest)))
-colnames(mean_tab) <- vars_of_interest
-rownames(mean_tab) <- colnames(allsamples_presence)
+# Also get mean and median values for filter-split samples.
+metaG_presence_freeliv <- read.table(file = "/mfs/gdouglas/projects/ocean_mags/networks/combined_tables/metaG_presence_freeliv.tsv.gz",
+                                     header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
 
-for (taxon in colnames(allsamples_presence)) {
+metaG_presence_lessfiltered <- read.table(file = "/mfs/gdouglas/projects/ocean_mags/networks/combined_tables/metaG_presence_lessfiltered.tsv.gz",
+                                          header = TRUE, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
 
-  samples_w_taxon <- rownames(allsamples_presence)[which(allsamples_presence[, taxon] > 0)]
-  if (length(samples_w_taxon) < 10) { stop("Error - should be at least 10 MGS samples!") }
-  
-  info_taxon_subset <- info[samples_w_taxon, ]
-  
-  for (var_of_interest in vars_of_interest) {
-    vec <- info_taxon_subset[, var_of_interest]
-    if (length(which(! is.na(vec))) > 0) {
-      mean_tab[taxon, var_of_interest] <- mean(vec, na.rm = TRUE)
-    }
-  }
+compute_mean_median_sample_vals(info_tab=info,
+                                presence_tab=metaG_presence_freeliv,
+                                outprefix='/mfs/gdouglas/projects/ocean_mags/networks/combined_tables/freeliv_present_metadata')
 
-}
-
-write.table(x = mean_tab,
-            file = "/mfs/gdouglas/projects/ocean_mags/coverm/combined_tables/allsamples_present_metadata_mean_by_sample.tsv",
-            col.names = NA, row.names = TRUE, sep = "\t", quote = FALSE)
+compute_mean_median_sample_vals(info_tab=info,
+                                presence_tab=metaG_presence_lessfiltered,
+                                outprefix='/mfs/gdouglas/projects/ocean_mags/networks/combined_tables/lessfiltered_present_metadata')
