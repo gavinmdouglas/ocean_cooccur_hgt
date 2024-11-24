@@ -44,6 +44,11 @@ Perform Spearman correlation between all pairwise variables of interest.
                         required=False,
                         default=None)
 
+    parser.add_argument('-m', '--min_taxa', metavar="MIN_TAXA", type=int,
+                        help="Minimum number of HGT partners to consider taxon.",
+                        required=False,
+                        default=10)
+
     args = parser.parse_args()
 
     combined = pd.read_table(filepath_or_buffer=args.combined_in, sep='\t',
@@ -65,7 +70,6 @@ Perform Spearman correlation between all pairwise variables of interest.
         combined = combined[["taxon_i", "taxon_j", "tip_dist", cooccur, hgt, args.extra_col]]
     else:
         combined = combined[["taxon_i", "taxon_j", "tip_dist", cooccur, hgt]]
-    
 
     combined = combined[combined["tip_dist"].notna()]
     combined = combined[combined[hgt].notna()]
@@ -87,9 +91,10 @@ Perform Spearman correlation between all pairwise variables of interest.
 
     pairwise_spearman_raw = []
     partial_spearman_raw = []
+
     for taxon in unique_taxa:
         taxon_rows = combined[(combined["taxon_i"] == taxon) | (combined["taxon_j"] == taxon)]
-        if taxon_rows.shape[0] < 10:
+        if taxon_rows.shape[0] < args.min_taxa:
             continue
 
         # Check that each column has at least two unique values.

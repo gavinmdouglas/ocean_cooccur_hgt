@@ -17,10 +17,24 @@ id_map[["cooccur_simple_cooccur"]] <- "Co-occur (Simple)"
 id_map[["cooccur_ratio"]] <- "Co-occur (HyperG)"
 id_map[["cooccur_asso"]] <- "Co-occur (propr)"
 
+id_map[["simple"]] <- "Simple"
+id_map[["hyperG"]] <- "HyperG"
+id_map[["propr"]] <- "propr"
+
+for (approach in c("simple", "hyperG", "propr")) {
+  for (filtersplit in c("freeliv", "lessfiltered")) {
+    id_map[[paste(approach, filtersplit, sep = '_')]] <- id_map[[approach]]
+  }
+}
+
+cooccur_name_order <- c("Simple", "HyperG", "propr")
+
 approach_to_colname <- list()
 approach_to_colname[["simple"]] <- "cooccur_simple_cooccur"
 approach_to_colname[["hyperG"]] <- "cooccur_ratio"
 approach_to_colname[["propr"]] <- "cooccur_asso"
+
+# variable_order <- c("cooccur_simple_cooccur", "cooccur_ratio", "cooccur_asso", "both_gene_count", "ranger_hgt_tallies", "tip_dist", "depth", "latitude", "longitude", "temperature", "oxygen", "salinity")
 
 clean_ids <- function(in_vec) {
   sapply(in_vec, function(x) { id_map[[x]] })
@@ -70,9 +84,14 @@ prep_pairwise_tab <- function(infile) {
     x_subset <- unique_combos[i, "X"]
     y_subset <- unique_combos[i, "Y"]
     combo_subset <- in_pairwise[which(in_pairwise$X == x_subset & in_pairwise$Y == y_subset), ]
-    wilox_combo_out <- wilcox.test(combo_subset$r, exact=FALSE)
-    if (wilox_combo_out$p.value >= 0.05) {
-      # print("nonsig")
+    if (nrow(combo_subset) >= 5) {
+      wilox_combo_out <- wilcox.test(combo_subset$r, exact=FALSE)
+      if (wilox_combo_out$p.value >= 0.05) {
+        # print("nonsig")
+        nonsig_comparisons[[nonsig_count]] <- c(y_subset, x_subset)
+        nonsig_count <- nonsig_count + 1
+      }
+    } else {
       nonsig_comparisons[[nonsig_count]] <- c(y_subset, x_subset)
       nonsig_count <- nonsig_count + 1
     }
@@ -90,14 +109,17 @@ read_in_pairwise <- function(subfolder, approaches, suffix, ref_approach='simple
     mean_pairwise[[approach]] <- prep_pairwise_tab(infile_blast_pairwise)
   }
 
-  identity_sanity_checks <- c()
   for (approach1 in approaches) {
     for (approach2 in approaches) {
       if (approach1 == approach2) { next }
-      identity_sanity_checks <- c(identity_sanity_checks, identical(mean_pairwise[[approach1]]$tab[-8, ],  mean_pairwise[[approach2]]$tab[-8, ]))
-    }
+        non_intersecting_rows <- c(setdiff(rownames(mean_pairwise[[approach1]]$tab), rownames(mean_pairwise[[approach2]]$tab)),
+                                   setdiff(rownames(mean_pairwise[[approach2]]$tab), rownames(mean_pairwise[[approach1]]$tab)))
+        if (! identical(mean_pairwise[[approach1]]$tab[-which(rownames(mean_pairwise[[approach1]]$tab) %in% non_intersecting_rows), ],
+                        mean_pairwise[[approach2]]$tab[-which(rownames(mean_pairwise[[approach2]]$tab) %in% non_intersecting_rows), ])) {
+          stop("Non-co-occurrence mismatches for ", approach1, " and ", approach2)
+        }
+      }
   }
-  if (length(which(! identity_sanity_checks)) > 0) { stop("Non-co-occurrence mismatches" )}
 
   # Also make it easy to combine the co-occurrence types into a single heatmap.
   mean_pairwise_combined <- mean_pairwise[[ref_approach]]$tab
@@ -164,3 +186,59 @@ create_markdown_pairwise_heatmaps <- function(mean_pairwise_in, in_mat, approach
 
 }
 
+
+read_partial_corr_output <- function(outfolder, hgt_count_colname, approaches) {
+
+  all_approaches_raw <- list()
+
+  for (approach in approaches) {
+
+    partial_in <- read.table(paste(outfolder, '/', approach, ".partial.tsv", sep = ''), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    partial_tiponly_in <- read.table(paste(outfolder, '/', approach, ".tiponly.partial.tsv", sep = ''), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    partial_permuted_in <- read.table(paste(outfolder, '/', approach, ".permuted.partial.tsv", sep = ''), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+    spearman_in <- read.table(paste(outfolder, '/', approach, ".pairwise.tsv", sep = ''), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    spearman_in <- spearman_in[grep("cooccur", spearman_in$X), ]
+    spearman_in <- spearman_in[which(spearman_in$Y == hgt_count_colname), ]
+    spearman_in$p.val <- spearman_in$p.unc
+    spearman_in <- spearman_in[, colnames(partial_tiponly_in)]
+
+    partial_in$type <- "All var. controlled"
+    partial_tiponly_in$type <- "Tip dist. controlled"
+    partial_permuted_in$type <- "All var. controlled (permuted)"
+    spearman_in$type <- "No control"
+
+    combined <- do.call(rbind, list(partial_in, partial_tiponly_in,
+                                    partial_permuted_in, spearman_in))
+    combined$Approach <- id_map[[approach]]
+
+    all_approaches_raw[[approach]] <- combined
+
+  }
+
+  all_combined <- do.call(rbind, all_approaches_raw)
+
+  all_combined$Approach <- factor(all_combined$Approach, levels = unique(all_combined$Approach))
+  all_combined$type <- factor(all_combined$type, levels = c("No control", "Tip dist. controlled", "All var. controlled", "All var. controlled (permuted)"))
+
+  return(all_combined)
+}
+
+
+create_correlation_boxplot_plot <- function(in_df, plot_title) {
+  cat("\n\n")
+  cat("### ", plot_title, " \n\n\n")
+  print(ggplot(data = in_df[which(! is.na(in_df$r)), ], aes(x = Approach, y = r, fill = type)) +
+          geom_quasirandom(dodge.width=.75, alpha = 0.5, col="grey80") +
+          geom_boxplot(outlier.shape = NA, alpha=0.7) +
+          theme_bw() +
+          theme(panel.grid.major.x = element_blank(),
+                panel.grid.minor.x = element_blank(),
+                plot.title = element_text(hjust = 0.5)) +
+          ylab("Partial Spearman's correlation coefficient") +
+          xlab("Co-occurrence approach") +
+          ggtitle(plot_title) +
+          labs(fill="Spearman approach") +
+          scale_fill_manual(values = c("#c7733b", "#8d75ca", "#78a450", "#c16786")))
+  cat("\n\n")
+}

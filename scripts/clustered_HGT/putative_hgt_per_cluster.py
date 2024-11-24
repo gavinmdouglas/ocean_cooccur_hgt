@@ -6,7 +6,6 @@ import sys
 import gzip
 from collections import defaultdict
 import hammingdist
-import contextlib
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -26,7 +25,7 @@ formatter_class=argparse.RawDescriptionHelpFormatter)
                         metavar="FILES", type=str,
                         help="Path to file with paths to input FASTAs. One per line. Done this way to make it trivial to parallelize.",
                         required=True)
-    
+
     parser.add_argument('-o', '--output',
                         metavar="OUTPUT", type=str,
                         help="Path to output file.",

@@ -48,16 +48,28 @@ Perform Spearman correlation between all pairwise variables of interest.
                         required=False,
                         default=None)
 
+    parser.add_argument('-m', '--min_taxa', metavar="MIN_TAXA", type=int,
+                        help="Minimum number of HGT partners to consider taxon.",
+                        required=False,
+                        default=10)
+
     args = parser.parse_args()
 
     mean_env_diff = pd.read_table(filepath_or_buffer=args.mean_env_diff, sep='\t',
                                   compression='gzip', header=0, index_col=0, na_values=['NA'])
+
+    # Remove lower and upper filter columns (if present).
+    if 'lower_filter' in mean_env_diff.columns:
+        mean_env_diff = mean_env_diff.drop(columns=['lower_filter'])
+
+    if 'upper_filter' in mean_env_diff.columns:
+        mean_env_diff = mean_env_diff.drop(columns=['upper_filter'])
+
     # Check if any rows have NA values.
     if mean_env_diff.isna().sum().sum() > 0:
-        print("Warning: NA values found in mean environment difference table. Removing these rows.", 
-                file=sys.stderr)
-
-    mean_env_diff = mean_env_diff.dropna()
+        print("Warning: NA values found in mean environment difference table. Removing these rows.",
+              file=sys.stderr)
+        mean_env_diff = mean_env_diff.dropna()
 
     combined = pd.read_table(filepath_or_buffer=args.combined_in, sep='\t',
                              compression='gzip', header=0, index_col=0, na_values=['NA'])
@@ -104,16 +116,16 @@ Perform Spearman correlation between all pairwise variables of interest.
     partial_spearman_tip_only_raw = []
     permuted_partial_raw = []
 
+    mean_env_diff_combos = mean_env_diff.index
+
     for taxon in unique_taxa:
         taxon_rows = combined[(combined["taxon_i"] == taxon) | (combined["taxon_j"] == taxon)]
 
         subset_taxa_combos = taxon_rows.index
 
-        # Figure out which of these combos is in the mean_env_diff table.
-        mean_env_diff_combos = mean_env_diff.index
         intersecting_combos = [combo for combo in subset_taxa_combos if combo in mean_env_diff_combos]
 
-        if len(intersecting_combos) >= 10:
+        if len(intersecting_combos) >= args.min_taxa:
             permuted_partial_raw_taxon = []
 
             mean_env_diff_values = mean_env_diff.loc[intersecting_combos]

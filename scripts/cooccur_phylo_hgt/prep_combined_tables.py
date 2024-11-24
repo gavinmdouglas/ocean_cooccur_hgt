@@ -45,6 +45,11 @@ Output a table (to STDOUT) with the key information from these tables for each t
                         required=False,
                         default="/mfs/gdouglas/projects/ocean_mags/mapfiles/MAG_taxa_breakdown.tsv.gz")
 
+    parser.add_argument("--hgt_cols", metavar="HGT_COLS", type=str,
+                        help="Comma-delimited list of HGT columns to include in output. Must all be present in input table.",
+                        required=False,
+                        default="95_hit_count,99_hit_count,both_hit_count,95_gene_count,99_gene_count,both_gene_count")
+
     args = parser.parse_args()
 
     # Read in required tables.
@@ -60,6 +65,11 @@ Output a table (to STDOUT) with the key information from these tables for each t
     taxa_tab = pd.read_table(filepath_or_buffer=args.taxa_tab, compression='gzip', header=0, index_col=1)
     hgt_tab = pd.read_table(filepath_or_buffer=args.hgt_tab, compression='gzip', header=0, index_col=0)
 
+    hgt_cols = args.hgt_cols.split(',')
+    for col in hgt_cols:
+        if col not in hgt_tab.columns:
+            sys.exit(f"Column {col} not found in HGT table.")
+
     with gzip.open(args.coverm_tab, 'rt') as coverm_in:
         header = coverm_in.readline().strip().split('\t')
         if header[0] != 'sample':
@@ -70,7 +80,7 @@ Output a table (to STDOUT) with the key information from these tables for each t
     measures = args.cooccur_measure.split(',')
     if len(measures) == 0:
         sys.exit("No co-occurrence measures provided.")
-    headerline = ["taxa_combo", "taxon_i", "taxon_j", "tip_dist", "diff_tax_level", "95_hit_count", "99_hit_count", "both_hit_count", "95_gene_count", "99_gene_count", "both_gene_count"]
+    headerline = ["taxa_combo", "taxon_i", "taxon_j", "tip_dist", "diff_tax_level"] + hgt_cols
     for measure in measures:
         headerline.append("cooccur_" + measure)
     print("\t".join(headerline))
@@ -96,14 +106,16 @@ Output a table (to STDOUT) with the key information from these tables for each t
                 diff_level = tax_levels[i]
                 break
 
-        # If taxa_combo is in hgt table, then specify values for "95_hit_count", "99_hit_count", "both_hit_count", "95_gene_count", "99_gene_count", "both_gene_count".
+        # If taxa_combo is in hgt table, then specify values for all HGT columns.
         if taxa_combo in hgt_tab.index:
             hgt_row = hgt_tab.loc[taxa_combo]
-            hgt_values = [str(hgt_row["95_hit_count"]), str(hgt_row["99_hit_count"]), str(hgt_row["both_hit_count"]), str(hgt_row["95_gene_count"]), str(hgt_row["99_gene_count"]), str(hgt_row["both_gene_count"])]
+            hgt_values = []
+            for col in hgt_cols:
+                hgt_values.append(str(hgt_row[col]))
         elif reverse_taxa_combo in hgt_tab.index:
             sys.exit(f"Error - Reverse taxa_combo found in HGT table: {reverse_taxa_combo}.")
         else:
-            hgt_values = ["0"] * 6
+            hgt_values = ["0"] * len(hgt_cols)
 
         # Get co-occurrence values for each measure.
         cooccur_values = []
@@ -116,9 +128,9 @@ Output a table (to STDOUT) with the key information from these tables for each t
         else:
             cooccur_values = ["NA"] * len(measures)
 
-        hgt_cols = '\t'.join(hgt_values)
+        hgt_values_out = '\t'.join(hgt_values)
         cooccur_cols = '\t'.join(cooccur_values)
-        print(f"{taxa_combo}\t{taxon_i}\t{taxon_j}\t{tip_dist_val}\t{diff_level}\t{hgt_cols}\t{cooccur_cols}")
+        print(f"{taxa_combo}\t{taxon_i}\t{taxon_j}\t{tip_dist_val}\t{diff_level}\t{hgt_values_out}\t{cooccur_cols}")
 
 if __name__ == '__main__':
     main()

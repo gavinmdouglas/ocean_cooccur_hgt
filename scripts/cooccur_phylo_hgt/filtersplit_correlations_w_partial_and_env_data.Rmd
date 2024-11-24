@@ -30,14 +30,35 @@ source('~/scripts/ocean_mag_hgt/scripts/cooccur_phylo_hgt/explore_correlation_co
 ## Pairwise Spearman correlations {.tabset}
 
 ```{r read_pairwise_files}
+allsamples_blast_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/allsamples/blast/partial_corr_out_median/", approaches, suffix = ".pairwise.tsv")
+allsamples_ranger_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/allsamples/rangerdtl/partial_corr_out_median/", approaches, suffix = ".pairwise.tsv")
+allsamples_clusterbased_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/allsamples/clusterbased/partial_corr_out_median/", approaches, suffix = ".pairwise.tsv")
+
 freeliv_blast_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/blast/partial_corr_out_median/", approaches, suffix = "_freeliv.pairwise.tsv")
 freeliv_ranger_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/rangerdtl/partial_corr_out_median/", approaches, suffix = "_freeliv.pairwise.tsv")
+# freeliv_clusterbased_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/clusterbased/partial_corr_out_median/", approaches, suffix = "_freeliv.pairwise.tsv")
 
 lessfiltered_blast_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/blast/partial_corr_out_median/", approaches, suffix = "_lessfiltered.pairwise.tsv")
 lessfiltered_ranger_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/rangerdtl/partial_corr_out_median/", approaches, suffix = "_lessfiltered.pairwise.tsv")
+# lessfiltered_clusterbased_pairwise_in <- read_in_pairwise("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/clusterbased/partial_corr_out_median/", approaches, suffix = "_lessfiltered.pairwise.tsv")
+
 ```
 
 ```{r blast_pairwise_spearman, fig.height=7, fig.width=8, results='asis', echo=FALSE}
+null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=allsamples_blast_pairwise_in$mean_pairwise,
+                                              in_mat=allsamples_blast_pairwise_in$mean_pairwise_combined,
+                                              approaches=approaches,
+                                              category="BLAST all samples")
+
+null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=allsamples_ranger_pairwise_in$mean_pairwise,
+                                              in_mat=allsamples_ranger_pairwise_in$mean_pairwise_combined,
+                                              approaches=approaches,
+                                              category="RANGER all samples")
+
+null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=allsamples_clusterbased_pairwise_in$mean_pairwise,
+                                              in_mat=allsamples_clusterbased_pairwise_in$mean_pairwise_combined,
+                                              approaches=approaches,
+                                              category="Cluster-based all samples")
 
 null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=freeliv_blast_pairwise_in$mean_pairwise,
                                               in_mat=freeliv_blast_pairwise_in$mean_pairwise_combined,
@@ -49,6 +70,11 @@ null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=freeliv_ranger_pa
                                               approaches=approaches,
                                               category="RANGER-DTL free-living")
 
+# null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=freeliv_clusterbased_pairwise_in$mean_pairwise,
+#                                               in_mat=freeliv_clusterbased_pairwise_in$mean_pairwise_combined,
+#                                               approaches=approaches,
+#                                               category="Cluster-based free-living")
+
 null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=lessfiltered_blast_pairwise_in$mean_pairwise,
                                               in_mat=lessfiltered_blast_pairwise_in$mean_pairwise_combined,
                                               approaches=approaches,
@@ -58,9 +84,48 @@ null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=lessfiltered_rang
                                               in_mat=lessfiltered_ranger_pairwise_in$mean_pairwise_combined,
                                               approaches=approaches,
                                               category="RANGER-DTL less-filtered")
+
+# null_out <- create_markdown_pairwise_heatmaps(mean_pairwise_in=lessfiltered_clusterbased_pairwise_in$mean_pairwise,
+#                                               in_mat=lessfiltered_clusterbased_pairwise_in$mean_pairwise_combined,
+#                                               approaches=approaches,
+#                                               category="Cluster-based less-filtered")
 ```
 
 
+## Partial Spearman correlations {.tabset}
+
+```{r read_partial}
+blast_allsamples <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/allsamples/blast/partial_corr_out_median/", "both_gene_count", approaches)
+ranger_allsamples <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/allsamples/rangerdtl/partial_corr_out_median/", "ranger_hgt_tallies", approaches)
+
+blast_freeliv <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/blast/partial_corr_out_median/", "both_gene_count", paste(approaches, "freeliv", sep = '_'))
+ranger_freeliv <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/rangerdtl/partial_corr_out_median/", "ranger_hgt_tallies", paste(approaches, "freeliv", sep = '_'))
+
+blast_lessfiltered <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/blast/partial_corr_out_median/", "both_gene_count", paste(approaches, "lessfiltered", sep = '_'))
+ranger_lessfiltered <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/rangerdtl/partial_corr_out_median/", "ranger_hgt_tallies", paste(approaches, "lessfiltered", sep = '_'))
+
+clusterbased_allsamples <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/allsamples/clusterbased/partial_corr_out_median/", "both_gene_count", approaches)
+# clusterbased_freeliv <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/clusterbased/partial_corr_out_median/", "both_gene_count", paste(approaches, "freeliv", sep = '_'))
+# clusterbased_lessfiltered <- read_partial_corr_output("/mfs/gdouglas/projects/ocean_mags/networks/filtersplit/clusterbased/partial_corr_out_median/", "both_gene_count", paste(approaches, "lessfiltered", sep = '_'))
+
+```
+
+
+```{r partial_corr_plots, fig.height=7, fig.width=8, results='asis', echo=FALSE}
+null_out <- create_correlation_boxplot_plot(blast_allsamples, "BLAST all samples")
+null_out <- create_correlation_boxplot_plot(ranger_allsamples, "RANGER all samples")
+null_out <- create_correlation_boxplot_plot(clusterbased_allsamples, "Cluster-based all samples")
+
+null_out <- create_correlation_boxplot_plot(blast_freeliv, "BLAST free-living")
+null_out <- create_correlation_boxplot_plot(ranger_freeliv, "RANGER free-living")
+#null_out <- create_correlation_boxplot_plot(clusterbased_freeliv, "Cluster-based free-living")
+
+
+null_out <- create_correlation_boxplot_plot(blast_lessfiltered, "BLAST less-filtered")
+null_out <- create_correlation_boxplot_plot(ranger_lessfiltered, "RANGER less-filtered")
+# null_out <- create_correlation_boxplot_plot(clusterbased_lessfiltered, "Cluster-based less-filtered")
+
+```
 
 # Session info {.tabset}
 
