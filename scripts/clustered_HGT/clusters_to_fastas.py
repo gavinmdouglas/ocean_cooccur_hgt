@@ -31,10 +31,14 @@ Parse CD-HIT output file of cluster definitions, and original input FASTA. Outpu
                         metavar="OUTDIR", type=str,
                         help="Path to output directory.",
                         required=True)
+    
+    parser.add_argument('-t', '--trim',
+                        action='store_true',
+                        help="Trim header of sequences in FASTA to first whitespace-delimited field.")
 
     args = parser.parse_args()
 
-    seqs = read_fasta(args.fasta)
+    seqs = read_fasta(args.fasta, cut_header=args.trim)
 
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)

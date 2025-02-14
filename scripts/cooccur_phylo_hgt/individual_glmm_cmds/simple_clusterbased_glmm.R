@@ -11,4 +11,3 @@ null_out <- compute_hgt_cooccur_w_subgroups(combined_file="/mfs/gdouglas/project
                                             num_cores=8,
                                             itermax=1000,
                                             evalmax=1000)
-

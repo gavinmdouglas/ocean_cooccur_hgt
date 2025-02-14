@@ -40,14 +40,10 @@ compute_hgt_cooccur_glmms <- function(combined_file,
     combined_info$cooccur <- bestNormalize::orderNorm(x = combined_info$cooccur_asso)$x.t
   }
 
-  if (cooccur_approach == 'simple') {
-    combined_info$hgt <- bestNormalize::orderNorm(x = combined_info[, hgt_tally_col])$x.t
-    glmm_family = "gaussian"
-  } else {
-    combined_info$hgt <- 0
-    combined_info$hgt[which(combined_info[, hgt_tally_col] > 0)] <- 1
-    glmm_family = "binomial"
-  }
+
+  combined_info$hgt <- 0
+  combined_info$hgt[which(combined_info[, hgt_tally_col] > 0)] <- 1
+  glmm_family = "binomial"
 
   combined_info$tip_dist_orderedNorm <- bestNormalize::orderNorm(x = combined_info$tip_dist)$x.t
 
@@ -147,14 +143,9 @@ compute_multimember_hgt_cooccur_glmms <- function(combined_file,
     combined_info$cooccur <- bestNormalize::orderNorm(x = combined_info$cooccur_asso)$x.t
   }
 
-  if (cooccur_approach == 'simple') {
-    combined_info$hgt <- bestNormalize::orderNorm(x = combined_info[, hgt_tally_col])$x.t
-    glmm_family = "gaussian"
-  } else {
-    combined_info$hgt <- 0
-    combined_info$hgt[which(combined_info[, hgt_tally_col] > 0)] <- 1
-    glmm_family = "binomial"
-  }
+  combined_info$hgt <- 0
+  combined_info$hgt[which(combined_info[, hgt_tally_col] > 0)] <- 1
+  glmm_family = "binomial"
 
   combined_info$tip_dist_orderedNorm <- bestNormalize::orderNorm(x = combined_info$tip_dist)$x.t
 
@@ -233,14 +224,9 @@ compute_hgt_cooccur_w_subgroups <- function(combined_file,
     combined_info$cooccur <- bestNormalize::orderNorm(x = combined_info$cooccur_asso)$x.t
   }
 
-  if (cooccur_approach == 'simple') {
-    combined_info$hgt <- bestNormalize::orderNorm(x = combined_info[, hgt_tally_col])$x.t
-    glmm_family = "gaussian"
-  } else {
-    combined_info$hgt <- 0
-    combined_info$hgt[which(combined_info[, hgt_tally_col] > 0)] <- 1
-    glmm_family = "binomial"
-  }
+  combined_info$hgt <- 0
+  combined_info$hgt[which(combined_info[, hgt_tally_col] > 0)] <- 1
+  glmm_family = "binomial"
 
   combined_info$tip_dist_orderedNorm <- bestNormalize::orderNorm(x = combined_info$tip_dist)$x.t
 
@@ -270,6 +256,7 @@ compute_hgt_cooccur_w_subgroups <- function(combined_file,
   combined_info[which(taxon_i_grouping == 'freeliving' & taxon_j_grouping == 'freeliving'), 'filter_group_match'] <- 'Free-living'
   combined_info[which(taxon_i_grouping == 'lessfiltered' & taxon_j_grouping == 'lessfiltered'), 'filter_group_match'] <- 'Less-filtered'
 
+  combined_info$filter_group_match <- factor(combined_info$filter_group_match, levels = c('Mixed', 'Free-living', 'Less-filtered'))
 
   col2keep <- c("hgt", "cooccur", "tip_dist_orderedNorm", "filter_group_match", "depth_orderedNorm", "latitude_orderedNorm",
                 "longitude_orderedNorm", "temperature_orderedNorm", "oxygen_orderedNorm", "salinity_orderedNorm")

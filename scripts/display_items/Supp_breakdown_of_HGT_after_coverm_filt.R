@@ -2,6 +2,7 @@ rm(list = ls(all.names = TRUE))
 
 library(ComplexHeatmap)
 library(gridGraphics)
+library(ggplot2)
 
 # Basic table and visualization of % comparisons that were hits by taxonomic level and identity cut-off.
 tax_levels <- c("Genus", "Family","Order", "Class", "Phylum", "Domain")
@@ -22,9 +23,6 @@ present_genomes <- taxonomy[colnames(coverm_presence), 'MAG']
 
 scaffolds_5000bp <- read.table('/mfs/gdouglas/projects/ocean_mags/Sunagawa_dataset/scaffolds_5000bp.txt',
                                stringsAsFactors = FALSE, header=FALSE)$V1
-
-num_comparisons <- read.table('/mfs/gdouglas/projects/ocean_hgt_zenodo/putative_hgt/num_comparisons_per_inter.level.tsv.gz',
-                              header = TRUE, sep = '\t', stringsAsFactors = FALSE, row.names = 1)
 
 hgt_tab <- read.table('/mfs/gdouglas/projects/ocean_hgt_zenodo/putative_hgt/cluster/all_best_hits.tsv.gz',
                       header = TRUE, sep = '\t', stringsAsFactors = FALSE)
@@ -76,13 +74,26 @@ analyzed_genomes <- rownames(map_tmp)
 # identical(gsub(' ', '', map_tmp[analyzed_genomes, 'Phylum']), genome_summary[analyzed_genomes, 'phylum'])
 # TRUE
 
+nonanalyzed_genomes <- setdiff(rownames(genome_summary), analyzed_genomes)
+
+# taxa_missing_from_tree <- read.table('/mfs/gdouglas/projects/ocean_hgt_zenodo/taxa_subsets/hgt_retained_taxa_missing_from_tree.txt.gz',
+#                                      stringsAsFactors = FALSE, header=FALSE)$V1
+# genomes_missing_from_tree <- taxonomy[taxa_missing_from_tree, 'MAG']
+
 unique_phyla <- unique(genome_summary$phylum)
 
-phyla_breakdown <- data.frame(analyzed=rep(0, length(unique_phyla)),
+phyla_breakdown <- data.frame(nonanalyzed=rep(0, length(unique_phyla)),
+                              analyzed=rep(0, length(unique_phyla)),
                               hgt_all=rep(0, length(unique_phyla)),
                               hgt_coverm_retained=rep(0, length(unique_phyla)),
                               hgt_coverm_filtered_out=rep(0, length(unique_phyla)))
 rownames(phyla_breakdown) <- unique_phyla
+
+nonanalyzed_summary <- genome_summary[nonanalyzed_genomes, ]
+nonanalyzed_phyla_tally <- table(nonanalyzed_summary$phylum)
+for (phylum in names(nonanalyzed_phyla_tally)) {
+  phyla_breakdown[phylum, 'nonanalyzed'] <- nonanalyzed_phyla_tally[phylum]
+}
 
 analyzed_summary <- genome_summary[analyzed_genomes, ]
 analyzed_phyla_tally <- table(analyzed_summary$phylum)
@@ -108,12 +119,15 @@ for (phylum in names(hgt_coverm_filtered_out_phyla_tally)) {
   phyla_breakdown[phylum, 'hgt_coverm_filtered_out'] <- hgt_coverm_filtered_out_phyla_tally[phylum]
 }
 
+phyla_NA <- phyla_breakdown['N/A', ]
 phyla_to_collapse_i <- which(rowSums(phyla_breakdown) < 15)
 phyla_to_collapse_sums <- colSums(phyla_breakdown[phyla_to_collapse_i, ])
 phyla_breakdown <- phyla_breakdown[-phyla_to_collapse_i, ]
+phyla_breakdown <- phyla_breakdown[-which(rownames(phyla_breakdown) == 'N/A'), ]
 phyla_breakdown <- phyla_breakdown[order(rowSums(phyla_breakdown), decreasing = TRUE), ]
 
 phyla_breakdown['Rare (< 15)', ] <- phyla_to_collapse_sums
+phyla_breakdown['Unclassified', ] <- phyla_NA
 
 bacteria_rows <- grep("d__Bacteria;", rownames(phyla_breakdown))
 archaea_rows <- grep("d__Archaea;", rownames(phyla_breakdown))
@@ -149,7 +163,7 @@ phyla_breakdown_heatmap <- Heatmap(matrix = log10(phyla_breakdown_percent + 1),
                                    cluster_rows = FALSE,
                                    cluster_columns = FALSE,
 
-                                   column_labels = c('Analyzed', 'HGT all', 'HGT filt. out', 'HGT retained'),
+                                   column_labels = c('Excluded', 'Analyzed', 'HGT all', 'HGT filt. out', 'HGT retained'),
 
                                    row_names_side = 'left',
                                    row_dend_side = 'right',
@@ -165,3 +179,4 @@ phyla_breakdown_heatmap <- grid.grabExpr(draw(column_title = "", phyla_breakdown
 ggsave(filename='/mfs/gdouglas/scripts/ocean_mag_hgt/display_items/Supp_phyla_breakdown_by_hgt_type.pdf',
        plot = phyla_breakdown_heatmap,
        height = 7, width = 6, dpi=600, device="pdf")
+

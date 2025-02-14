@@ -8,11 +8,18 @@ source('~/scripts/ocean_mag_hgt/scripts/func_enrich/enrich_function.R')
 COG_category_descrip <- read.table("/mfs/gdouglas/db/COG_definitions/COG_category_descrip.tsv",
                                    header = FALSE, sep = "\t", row.names = 1)
 
-cluster_annot <- read.table(file = "/mfs/gdouglas/projects/ocean_mags/Sunagawa_dataset/genomes-representative-cog-info.tsv.gz",
+cluster_annot <- read.table(file = "/mfs/gdouglas/projects/ocean_mags/Sunagawa_dataset/genomes-cdhit-cluster-cog-info.tsv.gz",
                             sep = "\t", row.names = 1, stringsAsFactors = FALSE, header = TRUE)
 
-best_hits <- read.table(file = '/mfs/gdouglas/projects/ocean_mags/clusters/all_best_hits_w_repID.tsv.gz', header = TRUE,
+gene_to_cluster <- read.table("/mfs/gdouglas/projects/ocean_mags/clusters/gene_to_cluster.tsv.gz",
+                              header = TRUE, sep = "\t", stringsAsFactors = FALSE, row.names = 1)
+
+
+best_hits <- read.table(file = '/mfs/gdouglas/projects/ocean_mags/clusters/all_best_hits.tsv.gz', header = TRUE,
                         sep = '\t', stringsAsFactors = FALSE)
+
+best_hits$gene1_cluster <- gene_to_cluster[best_hits$gene1, 'cluster_id']
+best_hits$gene2_cluster <- gene_to_cluster[best_hits$gene2, 'cluster_id']
 
 # Remove unannot clusters.
 cluster_annot <- cluster_annot[which(cluster_annot$majority_rule_COG_category != "-"), ]
@@ -37,18 +44,18 @@ best_hits_by_tax[['both']] <- list()
 
 for (tax_level in taxa_levels) {
   best_hit_subset <- best_hits[which(best_hits$highest_tax_diff == tax_level), ]
-  best_hits_by_tax[['both']][[tax_level]] <- unique(c(best_hit_subset$gene1_rep, best_hit_subset$gene2_rep))
+  best_hits_by_tax[['both']][[tax_level]] <- unique(c(best_hit_subset$gene1_cluster, best_hit_subset$gene2_cluster))
 
   best_hit_subset_95 <- best_hit_subset[which(best_hit_subset$identity < 99 & best_hit_subset$identity >= 95), ]
   if (nrow(best_hit_subset_95) > 0) {
-    best_hits_by_tax[['95']][[tax_level]] <- unique(c(best_hit_subset_95$gene1_rep, best_hit_subset_95$gene2_rep))
+    best_hits_by_tax[['95']][[tax_level]] <- unique(c(best_hit_subset_95$gene1_cluster, best_hit_subset_95$gene2_cluster))
   } else {
     best_hits_by_tax[['95']][[tax_level]] <- character()
   }
 
   best_hit_subset_99 <- best_hit_subset[which(best_hit_subset$identity >= 99), ]
   if (nrow(best_hit_subset_99) > 0) {
-    best_hits_by_tax[['99']][[tax_level]] <- unique(c(best_hit_subset_99$gene1_rep, best_hit_subset_99$gene2_rep))
+    best_hits_by_tax[['99']][[tax_level]] <- unique(c(best_hit_subset_99$gene1_cluster, best_hit_subset_99$gene2_cluster))
   } else {
     best_hits_by_tax[['99']][[tax_level]] <- character()
   }

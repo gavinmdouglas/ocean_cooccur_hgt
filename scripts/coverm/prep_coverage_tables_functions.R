@@ -45,11 +45,11 @@ read_coverm_file <- function(file, subfolder, exp_rows = 15339) {
   return(cov_in)
 }
 
-coverm_read_by_folder <- function(folder) {
+coverm_read_by_folder <- function(folder, exp_rows = 15339) {
   all_files <- list.files(folder,
                           pattern = "cov.gz", full.names = TRUE)
   if (length(all_files) == 0) { stop("Error, no files")}
-  filelist_raw <- mclapply(all_files, function(x) { read_coverm_file(file=x, subfolder=basename(folder)) }, mc.cores=64)
+  filelist_raw <- mclapply(all_files, function(x) { read_coverm_file(file=x, subfolder=basename(folder), exp_rows=exp_rows) }, mc.cores=64)
   return(data.frame(rbindlist(filelist_raw)))
 }
 

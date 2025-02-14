@@ -1,4 +1,3 @@
-rm(list = ls(all.names = TRUE))
 
 identify_enriched_categories <- function(genes,
                                          background,

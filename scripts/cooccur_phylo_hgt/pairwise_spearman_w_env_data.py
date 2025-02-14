@@ -70,7 +70,7 @@ Perform Spearman correlation between all pairwise variables of interest.
         print("Warning: NA values found in mean environment difference table. Removing these rows.",
               file=sys.stderr)
         mean_env_diff = mean_env_diff.dropna()
-
+    
     combined = pd.read_table(filepath_or_buffer=args.combined_in, sep='\t',
                              compression='gzip', header=0, index_col=0, na_values=['NA'])
 
