@@ -103,7 +103,7 @@ for (variable in coef_vars) {
 
 details_focal_to_plot$max_vif <- NA
 
-details_focal_to_plot$genome_subset <- gsub('tara_genomes', 'Tara genomes', details_focal_to_plot$genome_subset)
+details_focal_to_plot$genome_subset <- gsub('tara_genomes', 'Focal genomes', details_focal_to_plot$genome_subset)
 details_focal_to_plot$genome_subset <- gsub('progenomes', 'proGenomes', details_focal_to_plot$genome_subset)
 
 details_focal_to_plot$tool_and_subset[grep('clusterbased', details_focal_to_plot$tool_and_subset)] <- 'Cluster-based HGT'
@@ -122,8 +122,8 @@ for (i in which(details_focal_to_plot$model == "hgt_by_cooccur_tip_and_env_w_tax
   model_rownames[i] <- paste(model_rownames[i], "(GLMM)")
 }
 
-model_rownames[grep('tara_genomes/clusterbased_geotraces_samples_hyperg/hgt_by_cooccur_tip_and_env.glm', rownames(details_focal_to_plot))] <-  "Tara genomes | Cluster-based HGT | HyperG co-occur. (GEOTRACES samples only)"
-model_rownames[grep('tara_genomes/clusterbased_tara_samples_hyperg/hgt_by_cooccur_tip_and_env.glm', rownames(details_focal_to_plot))] <-  "Tara genomes | Cluster-based HGT | HyperG co-occur. (Tara samples only)"
+model_rownames[grep('tara_genomes/clusterbased_geotraces_samples_hyperg/hgt_by_cooccur_tip_and_env.glm', rownames(details_focal_to_plot))] <-  "Focal genomes | Cluster-based HGT | HyperG co-occur. (GEOTRACES samples only)"
+model_rownames[grep('tara_genomes/clusterbased_tara_samples_hyperg/hgt_by_cooccur_tip_and_env.glm', rownames(details_focal_to_plot))] <-  "Focal genomes | Cluster-based HGT | HyperG co-occur. (Tara samples only)"
 
 model_rownames[grep('progenomes/clusterbased_hyperg_geotraces_samples/hgt_by_cooccur_tip_and_env.glm', rownames(details_focal_to_plot))] <-  "proGenomes | Cluster-based HGT | HyperG co-occur. (GEOTRACES samples only)"
 model_rownames[grep('progenomes/clusterbased_hyperg_tara_samples/hgt_by_cooccur_tip_and_env.glm', rownames(details_focal_to_plot))] <-  "proGenomes | Cluster-based HGT | HyperG co-occur. (Tara samples only)"
@@ -158,7 +158,7 @@ rownames(details_focal_text) <- model_rownames
 rownames(details_focal_to_plot) <- model_rownames
 
 genome_annot <- HeatmapAnnotation(df = model_breakdown,
-                                     col = list(`Genome DB` = c("Tara genomes" = "grey80", "proGenomes" = "black"),
+                                     col = list(`Genome DB` = c("Focal genomes" = "grey80", "proGenomes" = "black"),
                                          `HGT method` = c("Cluster-based HGT" = "dodgerblue1", "BLAST-based HGT" = "lightskyblue1", "RANGER-DTL-based HGT" = "blue2"),
                                          `Co-occur method` = c("HyperG" = "green3", propr = "palegreen1", "Simple" = "green4")))
 
@@ -194,7 +194,7 @@ rownames(details_focal_text_supp) <- model_rownames_supp
 rownames(details_focal_to_plot_supp) <- model_rownames_supp
 
 genome_annot_supp <- HeatmapAnnotation(df = model_breakdown_supp,
-                                  col = list(`Genome DB` = c("Tara genomes" = "grey80", "proGenomes" = "black"),
+                                  col = list(`Genome DB` = c("Focal genomes" = "grey80", "proGenomes" = "black"),
                                              `HGT method` = c("Cluster-based HGT" = "dodgerblue1", "BLAST-based HGT" = "lightskyblue1", "RANGER-DTL-based HGT" = "blue2"),
                                              `Co-occur method` = c("HyperG" = "green3", propr = "palegreen1", "Simple" = "green4")))
 

@@ -30,6 +30,9 @@ for (COG_category in rownames(COG_category_descrip)) {
   background_all_genomes <- unique(c(background_all_genomes, rownames(cluster_annot)[grep(COG_category, cluster_annot$majority_rule_COG_category)]))
 }
 
+best_hits <- best_hits[which(best_hits$gene1_cluster %in% rownames(cluster_annot)), ]
+best_hits <- best_hits[which(best_hits$gene2_cluster %in% rownames(cluster_annot)), ]
+
 to_ignore <- c("A", "B", "Y", "Z")
 
 all_output_raw <- list()
@@ -77,6 +80,8 @@ for (identity in identities) {
 
 all_output <- do.call(rbind, all_output_raw)
 all_output$descrip <- COG_category_descrip[all_output$category, 1]
+
+all_output$fdr <- p.adjust(all_output$p, 'BH')
 
 write.table(x = all_output, sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE,
             file = "/mfs/gdouglas/projects/ocean_hgt_zenodo/putative_hgt/cluster/clusterbased_COG_category_enrichment_no.unannot.tsv")

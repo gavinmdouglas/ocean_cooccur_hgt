@@ -23,7 +23,6 @@ expected_mixed[expected_mixed == "K (all)"] <- "K"
 clusterbased_COG_enrich <- read.table('/mfs/gdouglas/projects/ocean_hgt_zenodo/putative_hgt/cluster/clusterbased_COG_category_enrichment_no.unannot.tsv.gz',
                                       header=TRUE, stringsAsFactors = FALSE, sep = '\t')
 
-
 # Put all COG category odd's ratios in single table for plotting as heatmap.
 COG_results <- data.frame(matrix(NA, nrow = 12, ncol = 22))
 colnames(COG_results) <- c("Approach", "Taxon_level", expected_enriched, expected_depleted, expected_mixed)

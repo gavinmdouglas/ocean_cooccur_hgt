@@ -68,7 +68,7 @@ env_by_cooccur_and_hgt <- ggplot(data = prepped_tab, aes(x = hgt_relationship, y
   scale_fill_manual(name='HGT', values=c("grey80", "#56B4E9")) +
   facet_wrap(. ~ variable, scales='free_y') +
   theme_bw() +
-  ylab('Median difference') +
+  ylab('Median difference\n(Lower values indicate genomes in more similar environments)') +
   xlab('Horizontal gene transfer (HGT) relationship') +
   theme(legend.position = "none")
 
