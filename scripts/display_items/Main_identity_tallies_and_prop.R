@@ -9,12 +9,8 @@ library(cowplot)
 clusterbased_hits <- read.table('/mfs/gdouglas/projects/ocean_hgt_zenodo/putative_hgt/cluster/cross_level_tallies_norm.tsv.gz',
                                 stringsAsFactors = FALSE, sep = '\t', header = TRUE)
 
-blast_hits <- read.table('/mfs/gdouglas/projects/ocean_hgt_zenodo/putative_hgt/blast/cross_level_tallies_norm.tsv.gz',
-                         stringsAsFactors = FALSE, sep = '\t', header = TRUE)
-blast_hits <- blast_hits[which(! blast_hits$Inter.level %in% c('Species', 'Strain')), ]
-
 combined <- data.frame(matrix(NA, nrow = 3, ncol = 6))
-colnames(combined) <- rev(blast_hits$Inter.level)
+colnames(combined) <- clusterbased_hits$Level
 rownames(combined) <- c("clusterbased_95", "clusterbased_99", "num_comparisons")
 
 combined["clusterbased_95", ] <- clusterbased_hits$cluster_95_99

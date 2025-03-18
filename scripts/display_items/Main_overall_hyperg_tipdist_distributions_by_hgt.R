@@ -69,7 +69,7 @@ hyperg_combined_info$hgt_relationship <- 'No HGT'
 hyperg_combined_info$hgt_relationship[which(hyperg_combined_info$hgt == 'Yes')] <- 'HGT'
 hyperg_combined_info$hgt_relationship <- factor(hyperg_combined_info$hgt_relationship, levels = c('No HGT', 'HGT'))
 
-tip_dist_by_cooccur_and_hgt <- ggplot(data = subset_tab, aes(x = cooccur, y = tip_dist)) +
+tip_dist_by_cooccur_and_hgt <- ggplot(data = hyperg_combined_info, aes(x = cooccur, y = tip_dist)) +
                                       geom_violin(fill='grey85', col='grey85') +
                                       geom_boxplot(outlier.shape=NA, alpha=0.3) +
                                       facet_wrap(. ~ hgt_relationship) +
