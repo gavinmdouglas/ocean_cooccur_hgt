@@ -1,6 +1,4 @@
-# ocean_mag_hgt
-
-All scripts for processing data and running statistical analyses for the manuscript.
+All scripts for processing data and running statistical analyses for the manuscript, currently titled "Co-occurrence drives horizontal gene transfer among marine prokaryotes".
 
 `scripts` directory structure:
 
