@@ -74,7 +74,7 @@ tip_dist_by_cooccur_and_hgt <- ggplot(data = hyperg_combined_info, aes(x = coocc
                                       geom_boxplot(outlier.shape=NA, alpha=0.3) +
                                       facet_wrap(. ~ hgt_relationship) +
                                       theme_bw() +
-                                      ylab('Inter-tip distance') +
+                                      ylab('Phylogenetic distance') +
                                       xlab('Co-occurring')
 
 top_row <- plot_grid(NULL, contingency_heatmap, NULL, labels=c('', 'a', ''), nrow=1, rel_widths = c(1, 2, 1))
@@ -83,5 +83,5 @@ combined_plot <- plot_grid(top_row, tip_dist_by_cooccur_and_hgt,
                           labels = c('', 'b'), nrow = 2, rel_heights = c(1, 2))
 
 ggsave(plot = combined_plot,
-       filename = "/mfs/gdouglas/scripts/ocean_mag_hgt/display_items/Main_clusterbased_hgt_cooccur_tipdist_overview.pdf",
+       filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_clusterbased_hgt_cooccur_tipdist_overview.pdf",
        device = "pdf", width = 9, height = 7, units = "in", dpi=600)

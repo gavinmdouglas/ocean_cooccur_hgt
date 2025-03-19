@@ -17,9 +17,9 @@ clusterbased_hyperg_coef$variable <- rownames(clusterbased_hyperg_coef)
 variable_map <- list()
 variable_map[["(Intercept)"]] <- 'Intercept'
 variable_map[["cooccur"]] <- 'Co-occurrence'
-variable_map[["tip_dist_orderedNorm"]] <- 'Inter-tip distance'
+variable_map[["tip_dist_orderedNorm"]] <- 'Phylogenetic distance'
 variable_map[["filter_group_matchFree-living"]] <- '\"Free-living\" enriched'
-variable_map[["filter_group_matchLess-filtered"]] <- '\"Less filtered\" enriched'
+variable_map[["filter_group_matchLess-filtered"]] <- '\"Less-filtered\" enriched'
 variable_map[["depth_orderedNorm"]] <- 'Depth (diff.)'
 variable_map[["latitude_orderedNorm"]] <- 'Latitude (diff.)'
 variable_map[["longitude_orderedNorm"]] <- 'Longitude (diff.)'
@@ -27,7 +27,7 @@ variable_map[["temperature_orderedNorm"]] <- 'Temperature (diff.)'
 variable_map[["oxygen_orderedNorm"]] <- 'Oxygen (diff.)'
 variable_map[["salinity_orderedNorm"]] <- 'Salinity (diff.)'
 
-var_order <- c('Co-occurrence', '\"Free-living\" enriched', '\"Less filtered\" enriched', 'Inter-tip distance', 'Depth (diff.)', 'Latitude (diff.)', 'Longitude (diff.)', 'Temperature (diff.)', 'Oxygen (diff.)', 'Salinity (diff.)')
+var_order <- c('Co-occurrence', '\"Free-living\" enriched', '\"Less-filtered\" enriched', 'Phylogenetic distance', 'Depth (diff.)', 'Latitude (diff.)', 'Longitude (diff.)', 'Temperature (diff.)', 'Oxygen (diff.)', 'Salinity (diff.)')
 
 clusterbased_hyperg_coef$clean_var <- NA
 for (i in 1:nrow(clusterbased_hyperg_coef)) {
@@ -60,6 +60,6 @@ clusterbased_hyperg_coef_barplot <- ggplot(data = clusterbased_hyperg_coef,
                 width = 0.2, color = "black")
 
 ggsave(plot = clusterbased_hyperg_coef_barplot,
-       filename = "/mfs/gdouglas/scripts/ocean_mag_hgt/display_items/Main_clusterbased_hyperg_lm_coef.pdf",
+       filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_clusterbased_hyperg_lm_coef.pdf",
        device = "pdf", width = 7, height = 4, units = "in", dpi=600)
 
