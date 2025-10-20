@@ -73,7 +73,7 @@ non_mag_genomes <- paste('g', tallies_no_mags$genome, sep = '')
 non_mag_genomes <- gsub('\\.', '_', non_mag_genomes)
 
 # Also subset to those with at least one contig above length cut-off.
-contig_lengths <- read.table('/mfs/gdouglas/projects/ocean_mags/progenomes_analyses/genome_prep/contig_length_breakdown.tsv',
+contig_lengths <- read.table('/mfs/gdouglas/projects/ocean_mags/progenomes_analyses/genome_prep/contig_length_breakdown.tsv.gz',
                              header=TRUE, sep = '\t', stringsAsFactors = FALSE)
 
 contig_lengths_long <- contig_lengths[which(contig_lengths$type == 'long'), ]
@@ -82,8 +82,6 @@ non_mag_genomes_nonshort <- non_mag_genomes[which(non_mag_genomes %in% contig_le
 
 write.table(x = non_mag_genomes_nonshort, file = '/mfs/gdouglas/projects/ocean_mags/progenomes_analyses/genome_prep/clearly_non_mags_genome_ids.txt',
             quote=FALSE, row.names = FALSE, col.names = FALSE)
-
-
 
 # Also get tallies broken down by plasmid vs other (assumed to be chromosomal) contig.
 plasmid_vs_other <- read.table('/mfs/gdouglas/projects/ocean_mags/progenomes_analyses/genome_prep/contig_tally_plasmid_vs_other.tsv',

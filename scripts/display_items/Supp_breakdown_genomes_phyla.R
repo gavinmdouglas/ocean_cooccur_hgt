@@ -85,8 +85,8 @@ unique_phyla <- unique(genome_summary$phylum)
 phyla_breakdown <- data.frame(nonanalyzed=rep(0, length(unique_phyla)),
                               analyzed=rep(0, length(unique_phyla)),
                               hgt_all=rep(0, length(unique_phyla)),
-                              hgt_coverm_retained=rep(0, length(unique_phyla)),
-                              hgt_coverm_filtered_out=rep(0, length(unique_phyla)))
+                              hgt_coverm_filtered_out=rep(0, length(unique_phyla)),
+                              hgt_coverm_retained=rep(0, length(unique_phyla)))
 rownames(phyla_breakdown) <- unique_phyla
 
 nonanalyzed_summary <- genome_summary[nonanalyzed_genomes, ]
@@ -107,17 +107,18 @@ for (phylum in names(hgt_all_phyla_tally)) {
   phyla_breakdown[phylum, 'hgt_all'] <- hgt_all_phyla_tally[phylum]
 }
 
+hgt_coverm_filtered_out_summary <- genome_summary[hgt_genomes_coverm_filtered_out, ]
+hgt_coverm_filtered_out_phyla_tally <- table(hgt_coverm_filtered_out_summary$phylum)
+for (phylum in names(hgt_coverm_filtered_out_phyla_tally)) {
+  phyla_breakdown[phylum, 'hgt_coverm_filtered_out'] <- hgt_coverm_filtered_out_phyla_tally[phylum]
+}
+
 hgt_coverm_retained_summary <- genome_summary[hgt_genomes_coverm_retained, ]
 hgt_coverm_retained_phyla_tally <- table(hgt_coverm_retained_summary$phylum)
 for (phylum in names(hgt_coverm_retained_phyla_tally)) {
   phyla_breakdown[phylum, 'hgt_coverm_retained'] <- hgt_coverm_retained_phyla_tally[phylum]
 }
 
-hgt_coverm_filtered_out_summary <- genome_summary[hgt_genomes_coverm_filtered_out, ]
-hgt_coverm_filtered_out_phyla_tally <- table(hgt_coverm_filtered_out_summary$phylum)
-for (phylum in names(hgt_coverm_filtered_out_phyla_tally)) {
-  phyla_breakdown[phylum, 'hgt_coverm_filtered_out'] <- hgt_coverm_filtered_out_phyla_tally[phylum]
-}
 
 phyla_NA <- phyla_breakdown['N/A', ]
 phyla_to_collapse_i <- which(rowSums(phyla_breakdown) < 15)
@@ -138,7 +139,8 @@ rownames(phyla_breakdown) <- gsub('d__Archaea;p__', '', rownames(phyla_breakdown
 
 phyla_breakdown <- phyla_breakdown[c(bacteria_rows, archaea_rows, other_rows), ]
 
-phyla_breakdown_percent <- as.matrix((phyla_breakdown / colSums(phyla_breakdown))) * 100
+phyla_breakdown_percent <- sweep(phyla_breakdown, 2, colSums(phyla_breakdown), FUN = "/") * 100
+
 phyla_breakdown <- as.matrix(phyla_breakdown)
 
 row_split_categories <- c(rep("Bacteria", length(bacteria_rows)),
@@ -170,13 +172,12 @@ phyla_breakdown_heatmap <- Heatmap(matrix = log10(phyla_breakdown_percent + 1),
                                    column_names_rot = 45,
 
                                    cell_fun = function(j, i, x, y, width, height, fill) {
-                                     if(! is.na(phyla_breakdown[i, j] > 0))
+                                     if(! is.na(phyla_breakdown[i, j]))
                                        grid.text(phyla_breakdown[i, j], x, y, gp = gpar(fontsize = 10), just = 'centre')
                                    })
 
 phyla_breakdown_heatmap <- grid.grabExpr(draw(column_title = "", phyla_breakdown_heatmap))
 
-ggsave(filename='/mfs/gdouglas/scripts/ocean_mag_hgt/display_items/Supp_phyla_breakdown_by_hgt_type.pdf',
+ggsave(filename='/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Supp_phyla_breakdown_by_hgt_type.pdf',
        plot = phyla_breakdown_heatmap,
        height = 7, width = 6, dpi=600, device="pdf")
-

@@ -50,5 +50,5 @@ env_by_cooccur_and_hgt <- ggplot(data = prepped_tab, aes(x = hgt_relationship, y
   theme(legend.position = "none")
 
 ggsave(plot = env_by_cooccur_and_hgt,
-       filename = "/mfs/gdouglas/scripts/ocean_mag_hgt/display_items/Main_clusterbased_hgt_cooccur_envdist_overview.pdf",
+       filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_Figure4.pdf",
        device = "pdf", width = 8, height = 5, units = "in", dpi=600)

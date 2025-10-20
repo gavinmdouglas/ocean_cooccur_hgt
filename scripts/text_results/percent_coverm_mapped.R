@@ -1,6 +1,6 @@
 rm(list = ls(all.names = TRUE))
 
-source('~/scripts/ocean_mag_hgt/scripts/coverm/prep_coverage_tables_functions.R')
+source('~/scripts/ocean_cooccur_hgt/scripts/coverm/prep_coverage_tables_functions.R')
 
 coverm_set1 <- coverm_read_by_folder("/mfs/gdouglas/projects/ocean_mags/coverm/additional_output")
 coverm_set2 <- coverm_read_by_folder("/mfs/gdouglas/projects/ocean_mags/coverm/additional_OceanDNA_round2")

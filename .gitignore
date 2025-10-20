@@ -1,2 +1,5 @@
 data/
 /display_items/
+old/
+__pycache__/
+unused/

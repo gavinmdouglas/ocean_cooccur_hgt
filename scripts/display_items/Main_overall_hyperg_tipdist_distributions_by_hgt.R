@@ -83,5 +83,5 @@ combined_plot <- plot_grid(top_row, tip_dist_by_cooccur_and_hgt,
                           labels = c('', 'b'), nrow = 2, rel_heights = c(1, 2))
 
 ggsave(plot = combined_plot,
-       filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_clusterbased_hgt_cooccur_tipdist_overview.pdf",
+       filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_Figure3.pdf",
        device = "pdf", width = 9, height = 7, units = "in", dpi=600)

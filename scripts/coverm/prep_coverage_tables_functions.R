@@ -24,6 +24,10 @@ prep_presence_tab <- function(cov_tab,
   taxon_presence_tallies <- colSums(presence_matrix)
   presence_matrix <- presence_matrix[, which(taxon_presence_tallies >= min_samples_w_genome)]
 
+  sample_tallies <- rowSums(presence_matrix)
+  presence_matrix <- presence_matrix[which(sample_tallies >= min_genomes_per_sample), ]
+
+
   return(presence_matrix)
 }
 

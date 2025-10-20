@@ -62,7 +62,7 @@ COG_results$Approach <- factor(COG_results$Approach,
                                           "HGT\n>= 99%"))
 
 
-pdf("/mfs/gdouglas/scripts/ocean_mag_hgt/display_items/Main_COG_enrich_heatmap.pdf", width = 10, height = 6.5)
+pdf("/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_Figure2.pdf", width = 10, height = 6.5)
 
 draw(Heatmap(matrix = COG_results_ORs,
                        heatmap_legend_param = list(title = expression("Sig. log"[2]*"(Odd's ratio)")),

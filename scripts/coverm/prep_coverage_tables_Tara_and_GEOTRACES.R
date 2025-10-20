@@ -1,7 +1,7 @@
 rm(list = ls(all.names = TRUE))
 
 # Prep separate tables for samples in Tara and GEOTRACES datasets specifically.
-source('~/scripts/ocean_mag_hgt/scripts/coverm/prep_coverage_tables_functions.R')
+source('~/scripts/ocean_cooccur_hgt/scripts/coverm/prep_coverage_tables_functions.R')
 
 OceanDNA_water_metadata <- read.table('/mfs/gdouglas/projects/ocean_mags/metadata/OceanDNA_supp_metadata/Supp_File_S1_water_samples.tsv',
                                       header = TRUE, sep = '\t', stringsAsFactors = FALSE)

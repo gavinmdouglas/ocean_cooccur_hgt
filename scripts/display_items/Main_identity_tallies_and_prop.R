@@ -46,7 +46,7 @@ count_heatmap <- Heatmap(matrix = as.matrix(combined_percent),
                                    column_names_centered = TRUE,
 
                                    cell_fun = function(j, i, x, y, width, height, fill) {
-                                     if(! is.na(combined_formatted[i, j] > 0))
+                                     if(! is.na(combined_formatted[i, j]))
                                        grid.text(combined_formatted[i, j], x, y, gp = gpar(fontsize = 10), just = 'centre')
                                    })
 
@@ -114,5 +114,5 @@ bottom_row <- plot_grid(norm_hits_plot, NULL, labels=c('b', ''), nrow=1, rel_wid
 combined_plot <- plot_grid(top_row, bottom_row, nrow=2, rel_heights = c(1, 2))
 
 ggsave(plot = combined_plot,
-       filename = "/mfs/gdouglas/scripts/ocean_mag_hgt/display_items/Main_identity_tallies_and_prop.pdf",
+       filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_Figure1.pdf",
        device = "pdf", width = 8.65, height = 8, units = "in", dpi=600)

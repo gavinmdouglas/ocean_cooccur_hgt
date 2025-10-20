@@ -65,12 +65,13 @@ hyperg_cooccur_parallel <- function(in_df,
 }
 
 
-run_netcomi_propr <- function(in_tab, random_seed, outfile_gizpped) {
+run_netcomi_propr <- function(in_tab, random_seed, outfile_gizpped, zeroMethod_set="multRepl", zeroPar_set=NULL) {
   output <- netConstruct(in_tab,
                          measure = "propr",
                          sparsMethod="threshold",
                          thresh = 0,
-                         zeroMethod="multRepl",
+                         zeroMethod=zeroMethod_set,
+                         zeroPar=zeroPar_set,
                          verbose = 3,
                          seed = random_seed)
 
