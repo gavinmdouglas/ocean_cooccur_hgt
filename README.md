@@ -14,5 +14,6 @@ All scripts for processing data and running statistical analyses for the manuscr
 * `preprocessing` - General code for pre-processing files.
 * `processing_additional` - Code for processing more metagenomics samples, after all OceanDNA samples were downloaded.
 * `progenomes` - Code for running similar workflows on proGenomes genome database.
+* `random_forest` - Code for running random forest and getting interpretable outputs from model.
 * `rangerdtl` - Code for processing RANGER-DTL (and HoMeR) results.
 * `text_results` - Quick analyses for statistics to report in text.
