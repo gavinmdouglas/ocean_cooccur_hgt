@@ -65,7 +65,7 @@ COG_results$Approach <- factor(COG_results$Approach,
 pdf("/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_Figure2.pdf", width = 10, height = 6.5)
 
 draw(Heatmap(matrix = COG_results_ORs,
-                       heatmap_legend_param = list(title = expression("Sig. log"[2]*"(Odd's ratio)")),
+                       heatmap_legend_param = list(title = expression("Sig. log"[2]*"(Odds ratio)")),
                        row_names_side = "left",
                        row_labels = COG_results$Taxon_level,
                        na_col = 'grey95',

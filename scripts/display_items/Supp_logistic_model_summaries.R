@@ -181,10 +181,10 @@ main_heatmap <- ComplexHeatmap::Heatmap(matrix = details_focal_to_plot,
                                         column_title = 'Model',
                                         row_split = c(rep('', 11), ' '),
                                         show_column_names = FALSE,
-                                        row_labels = c('Intercept', 'Co-occur.', 'Tip dist.', "Filter group (Small particle)", "Filter group ('Less-filtered')", 'Depth', 'Latitude', 'Longitude', 'Temperature', 'Oxygen', 'Salinity', 'Max. VIF')
+                                        row_labels = c('Intercept', 'Co-occur.', 'Phylogenetic distance', "Free-living", "Free-living and particle-attached", 'Depth', 'Latitude', 'Longitude', 'Temperature', 'Oxygen', 'Salinity', 'Max. VIF')
 )
 
-pdf("~/scripts/ocean_cooccur_hgt/display_items/Supp_all_model_summary.pdf", width = 8, height = 5)
+pdf("/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Supp_all_model_summary.pdf", width = 8, height = 5)
 draw(main_heatmap, padding = unit(c(2, 2, 2, 2), "mm"), heatmap_legend_side = "top", annotation_legend_side = "top",  merge_legend=TRUE)
 dev.off()
 
@@ -219,11 +219,11 @@ supp_heatmap <- ComplexHeatmap::Heatmap(matrix = details_focal_to_plot_supp,
                                         #column_title = 'Model',
                                         row_split = c(rep('', 11), ' '),
                                         show_column_names = FALSE,
-                                        row_labels = c('Intercept', 'Co-occur.', 'Tip dist.', "Filter group (Small particle)", "Filter group ('Less-filtered')", 'Depth', 'Latitude', 'Longitude', 'Temperature', 'Oxygen', 'Salinity', 'Max. VIF'),
+                                        row_labels = c('Intercept', 'Co-occur.', 'Phylogenetic distance', "Free-living", "Free-living and particle-attached", 'Depth', 'Latitude', 'Longitude', 'Temperature', 'Oxygen', 'Salinity', 'Max. VIF'),
                                         column_split =col_split_factor
 )
 
-pdf("~/scripts/ocean_cooccur_hgt/display_items/Supp_additional_model_summary.pdf", width = 10, height = 5)
+pdf("/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Supp_additional_model_summary.pdf", width = 10, height = 5)
 draw(supp_heatmap, padding = unit(c(2, 2, 2, 2), "mm"), heatmap_legend_side = "top", annotation_legend_side = "top",  merge_legend=TRUE)
 dev.off()
 

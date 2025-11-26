@@ -128,7 +128,7 @@ prev <- read.table('/mfs/gdouglas/projects/ocean_mags/networks/combined_tables/m
 genome_tax <- read.table('/mfs/gdouglas/projects/ocean_hgt_zenodo/mapfiles/MAG_taxa_breakdown.tsv.gz',
                          header=TRUE, sep = '\t', stringsAsFactors = FALSE, row.names = 2)
 
-env_data <- read.table("/mfs/gdouglas/projects/ocean_hgt_zenodo/mapfiles/Tara_PANGEA_env_data.tsv.gz",
+env_data <- read.table("/mfs/gdouglas/projects/ocean_hgt_zenodo/mapfiles/Tara_PANGAEA_env_data.tsv.gz",
                        header=TRUE, sep = '\t', stringsAsFactors = FALSE, row.names = 1)
 
 env_data <- env_data[, -which(colnames(env_data) %in% c("Sample_ID_BioSamples_accession_number", "Sample_ID_ENA_sample_accession_number"))]

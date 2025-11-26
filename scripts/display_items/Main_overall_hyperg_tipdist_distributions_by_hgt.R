@@ -8,6 +8,7 @@ library(cowplot)
 
 hyperg_combined_info <- read.table("/mfs/gdouglas/projects/ocean_mags/networks/allsamples/clusterbased/metaG_hyperg_cooccur.allsamples.combined.tsv.gz",
                                    header=TRUE, sep="\t", stringsAsFactors = FALSE)
+
 hyperg_combined_info <- hyperg_combined_info[which(! hyperg_combined_info$diff_tax_level %in% c('Species', 'Strain')), ]
 
 hyperg_combined_info$cooccur <- 'No'
@@ -37,7 +38,7 @@ contingency_heatmap <- Heatmap(matrix = as.matrix(contingency_percent),
 
                                col = circlize::colorRamp2(c(0, 100), c('white', 'firebrick3')),
 
-                               heatmap_legend_param = list(title = "Percent"),
+                               heatmap_legend_param = list(title = "Proportion (%)"),
 
                                show_heatmap_legend = TRUE,
 
@@ -65,9 +66,9 @@ contingency_heatmap <- Heatmap(matrix = as.matrix(contingency_percent),
 
 contingency_heatmap <- grid.grabExpr(draw(column_title = "", contingency_heatmap))
 
-hyperg_combined_info$hgt_relationship <- 'No HGT'
-hyperg_combined_info$hgt_relationship[which(hyperg_combined_info$hgt == 'Yes')] <- 'HGT'
-hyperg_combined_info$hgt_relationship <- factor(hyperg_combined_info$hgt_relationship, levels = c('No HGT', 'HGT'))
+hyperg_combined_info$hgt_relationship <- 'No horizontal gene transfer'
+hyperg_combined_info$hgt_relationship[which(hyperg_combined_info$hgt == 'Yes')] <- 'Horizontal gene transfer'
+hyperg_combined_info$hgt_relationship <- factor(hyperg_combined_info$hgt_relationship, levels = c('No horizontal gene transfer', 'Horizontal gene transfer'))
 
 tip_dist_by_cooccur_and_hgt <- ggplot(data = hyperg_combined_info, aes(x = cooccur, y = tip_dist)) +
                                       geom_violin(fill='grey85', col='grey85') +
@@ -75,9 +76,13 @@ tip_dist_by_cooccur_and_hgt <- ggplot(data = hyperg_combined_info, aes(x = coocc
                                       facet_wrap(. ~ hgt_relationship) +
                                       theme_bw() +
                                       ylab('Phylogenetic distance') +
-                                      xlab('Co-occurring')
+                                      xlab('Co-occurring') +
+                                      theme(text = element_text(colour="black"),
+                                            axis.text = element_text(colour="black"),
+                                            strip.background = element_blank(),
+                                            strip.text = element_text(colour = "black"))
 
-top_row <- plot_grid(NULL, contingency_heatmap, NULL, labels=c('', 'a', ''), nrow=1, rel_widths = c(1, 2, 1))
+top_row <- plot_grid(NULL, contingency_heatmap, NULL, labels=c('', 'a', ''), nrow=1, rel_widths = c(1, 2.25, 1))
 
 combined_plot <- plot_grid(top_row, tip_dist_by_cooccur_and_hgt,
                           labels = c('', 'b'), nrow = 2, rel_heights = c(1, 2))

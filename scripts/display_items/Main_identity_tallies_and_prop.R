@@ -28,17 +28,17 @@ count_heatmap <- Heatmap(matrix = as.matrix(combined_percent),
 
                                    col = circlize::colorRamp2(c(0, 100), c('white', 'firebrick3')),
 
-                                   heatmap_legend_param = list(title = "Percent"),
+                                   heatmap_legend_param = list(title = "Proportion (%)"),
 
                                    show_heatmap_legend = TRUE,
 
                                    row_title_rot=0,
-                                   row_labels = c(">= 95% and < 99%", ">= 99%", "Number of    \ngenome        \ncomparisons"),
-                                   row_names_gp = gpar(col="grey30"),
+                                   row_labels = c(">= 95% and < 99%", ">= 99%", "Genome       \ncomparisons"),
+                                   row_names_gp = gpar(col="#000000"),
 
                                    cluster_rows = FALSE,
                                    cluster_columns = FALSE,
-                                   column_names_gp = gpar(col="grey30"),
+                                   column_names_gp = gpar(col="#000000"),
 
                                    row_names_side = 'left',
                                    row_dend_side = 'right',
@@ -47,7 +47,7 @@ count_heatmap <- Heatmap(matrix = as.matrix(combined_percent),
 
                                    cell_fun = function(j, i, x, y, width, height, fill) {
                                      if(! is.na(combined_formatted[i, j]))
-                                       grid.text(combined_formatted[i, j], x, y, gp = gpar(fontsize = 10), just = 'centre')
+                                       grid.text(combined_formatted[i, j], x, y, gp = gpar(fontsize = 10, colour="#000000"), just = 'centre')
                                    })
 
 count_heatmap <- grid.grabExpr(draw(column_title = "", count_heatmap))
@@ -83,15 +83,14 @@ norm_hits_plot <- ggplot(data = norm_hits_combined,
   scale_colour_manual(values = c(mixed_color_hex, "orange", "cornflowerblue")) +
   labs(colour = "Identity cut-off") +
   xlab("Inter-taxonomic level") +
-  ylab(expression(atop(displaystyle(frac("No. putative HGT events", "No. genome comparisons")),
-                       displaystyle("(log"[10] * " scale)")))) +
-  theme(axis.title.y = element_text(angle = 0, vjust = 0.5),
+  ylab(expression(log[10] * bgroup("(", frac("Putative HGT events", "Genome comparisons"), ")"))) +
+  theme(axis.title.y = element_text(angle = 90, margin=margin(r=17)),
         legend.position = "inside",
         legend.position.inside = c(0.55, 0.85),
         legend.box = "horizontal",
         legend.background = element_rect(
           fill = "white",
-          color = "gray80",
+          color = "white",
         ),
         legend.margin = margin(6, 6, 6, 6),
         legend.box.background = element_rect(
@@ -101,18 +100,16 @@ norm_hits_plot <- ggplot(data = norm_hits_combined,
         plot.title = element_text(size = 20, face = "bold"),
         plot.subtitle = element_text(size = 16),
         plot.caption = element_text(size = 10),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 12, colour = "black"),
+        axis.ticks = element_line(colour = "black"),
         legend.title = element_text(size = 14),
         legend.text = element_text(size=12)
   )
 
-
 # Combine plot.
-top_row <- plot_grid(NULL, count_heatmap, NULL, rel_widths = c(1, 5, 0.1), nrow=1, labels=c('', 'a', ''))
-bottom_row <- plot_grid(norm_hits_plot, NULL, labels=c('b', ''), nrow=1, rel_widths = c(11, 1))
-combined_plot <- plot_grid(top_row, bottom_row, nrow=2, rel_heights = c(1, 2))
-
+bottom_row <- plot_grid(norm_hits_plot, NULL, labels=c('b', ''), nrow=1, rel_widths = c(7.4, 1))
+combined_plot <- plot_grid(count_heatmap, bottom_row, nrow=2, rel_heights = c(1, 2), labels=c('a', ''))
 ggsave(plot = combined_plot,
        filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_Figure1.pdf",
        device = "pdf", width = 8.65, height = 8, units = "in", dpi=600)

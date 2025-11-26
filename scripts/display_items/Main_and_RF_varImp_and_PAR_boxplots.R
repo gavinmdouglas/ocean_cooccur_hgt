@@ -16,7 +16,7 @@ spearman_info <- read.table("/mfs/gdouglas/projects/ocean_hgt_zenodo/hgt_prev_an
 breakdown <- read.table("/mfs/gdouglas/projects/ocean_hgt_zenodo/hgt_prev_analyses/Tara_lower_fraction_env_matched.tsv.gz",
                         sep = "\t", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
 
-cleaned_meta <- read.table(file = "/mfs/gdouglas/projects/ocean_hgt_zenodo/mapfiles/Tara_PANGEA_env_data.tsv.gz",
+cleaned_meta <- read.table(file = "/mfs/gdouglas/projects/ocean_hgt_zenodo/mapfiles/Tara_PANGAEA_env_data.tsv.gz",
                            header=TRUE, sep = "\t", stringsAsFactors = FALSE, row.names = 1)
 
 cleaned_meta <- cleaned_meta[, -which(colnames(cleaned_meta) %in% c("Sample_ID_BioSamples_accession_number", "Sample_ID_ENA_sample_accession_number"))]
@@ -81,12 +81,19 @@ varimp_plot <- ggplot(varimp_plot_df, aes(x = variable, y = importance, fill = a
                                              "Not significant" = "grey"),
                                   name = "") +
                 coord_flip() +
+                scale_y_continuous(labels = scales::label_number()) +
                 labs(x = "Variable",
                      y = "Permutation-based variable importance\n(for predicting horizontal gene transfer prevalence)") +
                 theme_bw() +
+                scale_x_discrete(labels = function(x) {
+                  x <- gsub("_", "~", x)
+                  x <- gsub("Chlorophyll~a", "Chlorophyll~italic(a)", x)
+                  parse(text = x)}) +
                 theme(axis.text.y = element_text(size = 10),
-                      legend.position = "bottom") +
-                scale_x_discrete(labels = function(x) gsub("_", " ", x))
+                                      text = element_text(colour="black"),
+                                      axis.text = element_text(colour="black"),
+                                      legend.position = c(0.5, 0.1),
+                                      legend.justification = c(0, 0))
 
 # Then get panel of PAR vs hgt_prop split by extreme PAR values.
 low_PAR_samples <- rownames(cleaned_meta)[which(cleaned_meta$PAR < 20)]
@@ -108,11 +115,16 @@ wilcox_p <- wilcox.test(prop_hgt ~ PAR_grouping, data = PAR_vs_hgt_df)$p.value
 PAR_vs_hgt_plot <- ggplot(data=PAR_vs_hgt_df, aes(x = PAR_grouping, y = prop_hgt)) +
   geom_quasirandom(alpha = 0.6, width = 0.3) +
   geom_boxplot(alpha = 0.3, outlier.shape = NA, width = 0.5) +
-  labs(x = "Sample grouping", y = "Horizontal gene transfer prevalence") +
+  labs(x = "Sample grouping \n  ", y = "Horizontal gene transfer prevalence") +
   annotate("text", x = 1.5, y = 0.23,
-           label = paste0("Mean difference: ", round(mean_diff, 4), "\n Wilcoxon p < 0.001"),
-           hjust = -0.1, vjust = 1.1, size = 3.5) +
-  theme_bw()
+           label = paste0("Mean difference: ", round(mean_diff, 4)),
+           hjust = -0.1, vjust = 0.3, size = 3.5) +
+  annotate("text", x = 1.5, y = 0.23,
+           label = "Wilcoxon~italic(P)~value<0.001",
+           hjust = -0.1, vjust = 2, size = 3.5, parse = TRUE) +
+theme_bw() +
+  theme(text = element_text(colour="black"),
+        axis.text = element_text(colour="black"))
 
 
 main_combined <- plot_grid(varimp_plot, PAR_vs_hgt_plot, labels=c('a', 'b'), rel_widths = c(1, 1))

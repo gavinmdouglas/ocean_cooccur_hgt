@@ -56,11 +56,11 @@ for (i in 1:length(var_names)) {
 
 results_table$wilcox_bh <- p.adjust(results_table$wilcox_p, 'BH')
 
-remap_variables <- list(prop_hgt = "HGT call",
+remap_variables <- list(prop_hgt = "Horizontal gene transfer call",
                         prop_proMGE = "proMGE hit",
                         prop_plasmid = "Gene plasmid-annotated",
                         prop_virus = "Gene virus-annotated",
-                        prop_provirus = "Provirus-annot. scaffold")
+                        prop_provirus = "Provirus-annotated scaffold")
 var_names <- names(remap_variables)
 
 sig_data_sig <- data.frame(variable = results_table$variable[results_table$wilcox_bh < 0.05],
@@ -102,22 +102,25 @@ plot_data <- do.call(rbind, plot_data_list)
 plot_data$variable_label <- unlist(remap_variables[plot_data$variable])
 plot_data$variable_label <- factor(plot_data$variable_label, levels = unlist(remap_variables))
 
-plot_data$group <- ifelse(plot_data$group == "lower", yes = "Small", no = "Large")
+plot_data$group <- ifelse(plot_data$group == "lower", yes = "Free-\nliving", no = "Particle-\nattached")
 
-plot_data$group <- factor(plot_data$group, levels=c('Small', 'Large'))
+plot_data$group <- factor(plot_data$group, levels=c('Free-\nliving', 'Particle-\nattached'))
 
 all_boxplots <- ggplot(plot_data, aes(x = group, y = value)) +
                         geom_quasirandom(alpha = 0.6, width = 0.3) +
                         geom_boxplot(alpha = 0.3, outlier.shape = NA, width = 0.5) +
-                        facet_wrap(~ variable_label, scales = "free_y") +
+                        facet_wrap(~ variable_label, scales = "free_y", axes="all_x") +
                         geom_text(data = sig_data_sig, aes(x = 1.5, y = Inf, label = significance),
                                   vjust = 1.2, size = 6, color = "red", inherit.aes = FALSE) +
                         geom_text(data = sig_data_ns, aes(x = 1.5, y = Inf, label = significance),
                                   vjust = 1.2, size = 3, color = "black", inherit.aes = FALSE) +
-                        labs(x = "Particle size enriched in metagenomics sample",
+                        labs(x = "Sample size fraction",
                              y = "Proportion of genomes with at least one instance") +
-                        theme_bw()
+                        theme_bw() +
+                        theme(text = element_text(colour="black"),
+                              axis.text = element_text(colour="black"),
+                              strip.background = element_blank(),
+                              strip.text = element_text(colour = "black"))
 
 ggsave(filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_Figure7.pdf",
        plot = all_boxplots, height=4, width=6, units = "in", device="pdf", dpi=600)
-

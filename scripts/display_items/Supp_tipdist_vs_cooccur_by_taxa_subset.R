@@ -25,25 +25,29 @@ higheronly_dataset_hex <- ggplot(hyperg_combined_info_higheronly, aes(x=tip_dist
   geom_hex(bins = 30) +
   scale_fill_viridis_c(name='Count') +
   theme_bw() +
-  labs(title = paste0("Above genus only\n(Spearman's ρ = ", round(spearman_higher_only$estimate, 3), ", P < 0.001)"),
+  labs(title = bquote(atop("Above genus only", "(" * "Spearman's ρ = " * .(round(spearman_higher_only$estimate, 3)) * ", " * italic(P) * " value < 0.001)")),
        y = expression("Co-occurrence ("*log[2] ~ "enrichment)"),
        x = 'Phylogenetic distance') +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        text = element_text(colour="black"),
+        axis.text = element_text(colour="black")) +
   ylim(-7, 4.5)
 
 loweronly_dataset_hex <- ggplot(hyperg_combined_info_loweronly, aes(x=tip_dist, y=log2(cooccur_ratio_w_dummy))) +
   geom_hex(bins = 30) +
   scale_fill_viridis_c(name='Count') +
   theme_bw() +
-  labs(title = paste0("Within genus or species only\n(Spearman's ρ = ", round(spearman_lower_only$estimate, 3),", P < 0.001)"),
+  labs(title = bquote(atop("Within genus or species only", "(" * "Spearman's ρ = " * .(round(spearman_lower_only$estimate, 3)) * ", " * italic(P) * " value < 0.001)")),
        y = expression("Co-occurrence ("*log[2] ~ "enrichment)"),
        x = 'Phylogenetic distance') +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        text = element_text(colour="black"),
+        axis.text = element_text(colour="black")) +
   ylim(-7, 4.5)
 
 combined_plot <- cowplot::plot_grid(higheronly_dataset_hex, loweronly_dataset_hex,
                                     labels = c('a', 'b'), nrow=1)
 
 ggsave(plot = combined_plot,
-       filename = "/mfs/gdouglas/scripts/ocean_mag_hgt/display_items/Supp_tipdist_vs_cooccur_by_taxa_subsets.png",
+       filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Supp_tipdist_vs_cooccur_by_taxa_subsets.png",
        device = "png", width = 10, height = 4, units = "in", dpi=400)

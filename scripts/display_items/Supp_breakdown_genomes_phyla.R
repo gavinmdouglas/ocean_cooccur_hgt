@@ -150,7 +150,7 @@ row_split_categories <- factor(row_split_categories, levels=c("Bacteria", "Archa
 
 phyla_breakdown <- format(phyla_breakdown, big.mark = ',', justify = 'none', trim = TRUE)
 
-phyla_breakdown_heatmap <- Heatmap(matrix = log10(phyla_breakdown_percent + 1),
+phyla_breakdown_heatmap <- Heatmap(matrix = log10(as.matrix(phyla_breakdown_percent) + 1),
 
                                    col = circlize::colorRamp2(c(0, 2), c('white', 'firebrick3')),
 
@@ -161,6 +161,7 @@ phyla_breakdown_heatmap <- Heatmap(matrix = log10(phyla_breakdown_percent + 1),
                                    row_split = row_split_categories,
                                    row_gap = unit(5, "mm"),
                                    row_title_rot=0,
+                                   row_names_gp = gpar(fontface = "italic"),
 
                                    cluster_rows = FALSE,
                                    cluster_columns = FALSE,

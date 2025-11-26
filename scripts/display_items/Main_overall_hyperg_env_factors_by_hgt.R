@@ -32,12 +32,12 @@ prepped_tab <- data.frame(hgt_relationship=rep(hyperg_combined_info$hgt_relation
                                   pairwise_env_dist[hyperg_combined_info$taxa_combo, 'temperature'],
                                   pairwise_env_dist[hyperg_combined_info$taxa_combo, 'oxygen'],
                                   pairwise_env_dist[hyperg_combined_info$taxa_combo, 'salinity']),
-                          variable=c(rep('Depth (diff.)', nrow(hyperg_combined_info)),
-                                     rep('Latitude (diff.)', nrow(hyperg_combined_info)),
-                                     rep('Longitude (diff.)', nrow(hyperg_combined_info)),
-                                     rep('Temperature (diff.)', nrow(hyperg_combined_info)),
-                                     rep('Oxygen (diff.)', nrow(hyperg_combined_info)),
-                                     rep('Salinity (diff.)', nrow(hyperg_combined_info))))
+                          variable=c(rep('Depth', nrow(hyperg_combined_info)),
+                                     rep('Latitude', nrow(hyperg_combined_info)),
+                                     rep('Longitude', nrow(hyperg_combined_info)),
+                                     rep('Temperature', nrow(hyperg_combined_info)),
+                                     rep('Oxygen', nrow(hyperg_combined_info)),
+                                     rep('Salinity', nrow(hyperg_combined_info))))
 
 env_by_cooccur_and_hgt <- ggplot(data = prepped_tab, aes(x = hgt_relationship, y = value, fill = hgt_relationship)) +
   geom_violin(fill='grey85', col='grey85') +
@@ -47,7 +47,11 @@ env_by_cooccur_and_hgt <- ggplot(data = prepped_tab, aes(x = hgt_relationship, y
   theme_bw() +
   ylab('Median difference\n(Lower values indicate genomes in more similar environments)') +
   xlab('Horizontal gene transfer (HGT) relationship') +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        text = element_text(colour="black"),
+        axis.text = element_text(colour="black"),
+        strip.background = element_blank(),
+        strip.text = element_text(colour = "black"))
 
 ggsave(plot = env_by_cooccur_and_hgt,
        filename = "/mfs/gdouglas/scripts/ocean_cooccur_hgt/display_items/Main_Figure4.pdf",

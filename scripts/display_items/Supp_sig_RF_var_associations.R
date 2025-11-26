@@ -17,7 +17,7 @@ spearman_info <- read.table("/mfs/gdouglas/projects/ocean_hgt_zenodo/hgt_prev_an
 breakdown <- read.table("/mfs/gdouglas/projects/ocean_hgt_zenodo/hgt_prev_analyses/Tara_lower_fraction_env_matched.tsv.gz",
                         sep = "\t", header = TRUE, stringsAsFactors = FALSE, row.names = 1)
 
-cleaned_meta <- read.table(file = "/mfs/gdouglas/projects/ocean_hgt_zenodo/mapfiles/Tara_PANGEA_env_data.tsv.gz",
+cleaned_meta <- read.table(file = "/mfs/gdouglas/projects/ocean_hgt_zenodo/mapfiles/Tara_PANGAEA_env_data.tsv.gz",
                            header=TRUE, sep = "\t", stringsAsFactors = FALSE, row.names = 1)
 
 cleaned_meta <- cleaned_meta[, -which(colnames(cleaned_meta) %in% c("Sample_ID_BioSamples_accession_number", "Sample_ID_ENA_sample_accession_number"))]
@@ -81,10 +81,15 @@ sig_varImp_spearman_info$x_pos <- ifelse(rownames(sig_varImp_spearman_info) %in%
 RF_sig_var_scatterplots <- ggplot(sig_env_long, aes(x = value, y = prop_hgt)) +
   geom_point(alpha = 0.6) +
   geom_text(data = sig_varImp_spearman_info, aes(x = x_pos, y = Inf, label = rho_label, hjust = hjust),
-            vjust = 1.5, size = 3, inherit.aes = FALSE, colour="grey70") +
+            vjust = 1.5, size = 3, inherit.aes = FALSE, colour="black") +
   facet_wrap(~ variable, scales = "free_x", labeller = as_labeller(function(x) gsub("_", " ", x))) +
   labs(x = "Environmental variable value", y = "Horizontal gene transfer prevalence") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none",
+        text = element_text(colour="black"),
+        axis.text = element_text(colour="black"),
+        strip.background = element_blank(),
+        strip.text = element_text(colour = "black"))
 
 
 # Also get Individual Conditional Expectation plots for each significant variable.
@@ -121,7 +126,12 @@ ice_linegraphs <- ggplot(data = ice_combined, aes(x = x_val, y = .value)) +
            inherit.aes = FALSE, alpha = 0.5) +  # Rug plot
   facet_wrap(~ Variable, scales = "free_x", labeller = labeller(Variable = function(x) gsub("_", " ", x))) +
   labs(x = "Environmental variable value", y = "Predicted horizontal gene transfer prevalence") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none",
+        text = element_text(colour="black"),
+        axis.text = element_text(colour="black"),
+        strip.background = element_blank(),
+        strip.text = element_text(colour = "black"))
 
 
 
@@ -159,7 +169,9 @@ interaction_plot <- ggplot(heatmap_data, aes(x = var2, y = var1, fill = interact
   scale_fill_gradient(low = "white", high = "red", limits=c(0, 0.125)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(x = "", y = "", fill = "H-statistic")
+  labs(x = "", y = "", fill = "H-statistic") +
+  theme(text = element_text(colour="black"),
+        axis.text = element_text(colour="black"))
 
 combined_indepth_RF_eval_lower_row <- plot_grid(NULL, interaction_plot, NULL, rel_widths = c(0.55, 1, 0.55), ncol=3, labels=c('', 'b', ''))
 grey_line <- ggplot() +
